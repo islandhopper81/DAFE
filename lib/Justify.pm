@@ -16,6 +16,7 @@ use Class::Std::Utils;
 use Scalar::Util::Numeric qw(isneg isint isfloat);
 use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
 use MyX::Generic;
+use Bio::TreeIO;
 
 {
     #Attributes
@@ -269,15 +270,16 @@ use MyX::Generic;
     sub _create_ordered_tree_aref {
         my ($href) = @_;
         my $include_href = $href->{include_href};
-        my $tree_file_obj = file( $href->{tree_file} );
-        my $slurped_tree = $tree_file_obj->slurp( chomp=>1 );
+        my $tree_obj = new Bio::TreeIO( -file => $href->{tree_file},
+                                        -format => "newick");
+        #Parses through the newick file
         my @ordered_tree;
-        my @tree = split /[\(\):,]/, $slurped_tree;
-        foreach my $id (@tree) {
-            if ($id !~ /\./ && $id !~ /,/ && $id !~ /^$/ && $id !~ /;/) {
-                push @ordered_tree, $id;
+        while ( my $tree = $tree_obj->next_tree() ) {
+            for my $leaves ($tree->get_leaf_nodes()) {
+                push @ordered_tree, $leaves->{_id};
             }
         }
+        
         $href->{tree_aref} = \@ordered_tree;
         return 1;
     }
