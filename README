@@ -1,0 +1,30 @@
+DAFE version 0.0.1
+
+The DAFE suite consists of perl and R scripts and a colleciton of perl and R
+libraries for analyzing Differentially Abundanct Functional Elements in
+metagenomes.  It relies on a database of references (i.e. genomes).  Metagenome
+reads are mapped to each reference.  Functional elements (i.e. genes ) from
+each reference are annotated as differentially abundant between metagenome
+sample types.
+
+INSTALLATION
+
+To install this module, run the following commands:
+
+	perl Build.PL
+	./Build
+	./Build test
+	./Build install
+
+
+DEPENDENCIES
+
+R 3.1.1 or greater
+
+
+COPYRIGHT AND LICENCE
+
+Copyright (C) 2016, Scott Yourstone and Nick Colaianni
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.

@@ -1,0 +1,17 @@
+Build.PL
+Changes
+MANIFEST			This list of files
+README
+scripts/DAFE_count.pl
+scripts/DAFE_db_check.pl
+scripts/DAFE_db_correct_genome_fasta.pl
+scripts/DAFE_db_correct_gff.pl
+scripts/DAFE_db_make_annote_tables.pl
+scripts/DAFE_db_make_gff_annote_tbl.pl
+scripts/DAFE_db_split_clstr_mapping_file.pl
+scripts/DAFE_make_gene_count_tbls.sh
+scripts/DAFE_stat_mk_DA_tbl.pl
+t/00.load.t
+t/Module.t
+t/pod-coverage.t
+t/pod.t
