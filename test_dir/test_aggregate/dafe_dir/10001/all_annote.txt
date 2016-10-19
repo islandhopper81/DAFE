@@ -1,8 +1,0 @@
-proteinId	name	kog
-101	first	KOG01
-102	fourth	KOG04
-103	second	KOG02
-104	third	KOG03
-105	fifth	KOG05,KOG06
-106	sixth	KOG06
-107	add_first	KOG01
