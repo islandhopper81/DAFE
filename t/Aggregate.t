@@ -113,21 +113,21 @@ sub get_test_param_obj {
        annote_file_name => "all_annote.txt", #Each genome should have one
        grp_genes_by => "kog", # Each annote file should have this column
        gene_id_col => "proteinId", #Check for a column that matches this name
-       count_dir => "../test_dir/full_test_dir/DAFE_cnt_results",
-       dafe_dir => "../test_dir/full_test_dir/JGI_fungal_db",
+       count_dir => "../t/test_dir/full_test_dir/DAFE_cnt_results",
+       dafe_dir => "../t/test_dir/full_test_dir/JGI_fungal_db",
        # ^The database directory^
-       out_dir => "../test_dir/full_test_dir/test_R_stats",
-       ref_meta_file => "../test_dir/full_test_dir/fungi_test.txt", #Need to make sure this annotation file exists
+       out_dir => "../t/test_dir/full_test_dir/test_R_stats",
+       ref_meta_file => "../t/test_dir/full_test_dir/fungi_test.txt", #Need to make sure this annotation file exists
        ref_meta_cols => '["Fraction", "Source", "Label"]', #Columns used in heatmap creation and each should be a column in the metadata file
-       ref_include_file => "../test_dir/full_test_dir/names.txt", #The ids of genomes that should be included
-       ref_exclude_file => "../test_dir/full_test_dir/empty_file.txt",
+       ref_include_file => "../t/test_dir/full_test_dir/names.txt", #The ids of genomes that should be included
+       ref_exclude_file => "../t/test_dir/full_test_dir/empty_file.txt",
        # ^The exclude file should be optional ^
        genome_id_col => "ID", 
-       metaG_meta_file => "../test_dir/full_test_dir/metagenome_metadata.txt",
-       metaG_include_file => "../test_dir/full_test_dir/sample.names.txt",
-       metaG_exclude_file => "../test_dir/full_test_dir/metaG_exclude.txt", #optional parameter
-       tree => "../test_dir/full_test_dir/Rooted_test_newick.nwk",
-       grp_meta_file => "../test_dir/full_test_dir/kog_metadata.txt", #file containing all the metadata for the features being used
+       metaG_meta_file => "../t/test_dir/full_test_dir/metagenome_metadata.txt",
+       metaG_include_file => "../t/test_dir/full_test_dir/sample.names.txt",
+       metaG_exclude_file => "../t/test_dir/full_test_dir/metaG_exclude.txt", #optional parameter
+       tree => "../t/test_dir/full_test_dir/Rooted_test_newick.nwk",
+       grp_meta_file => "../t/test_dir/full_test_dir/kog_metadata.txt", #file containing all the metadata for the features being used
        count_file_name => "gene_counts_id60.txt", #this is the default value
        min_sample_count => 3, #Must be a positive integer
        min_sample_cpm => 0.03, #Must be positive and greater than 0
@@ -149,21 +149,21 @@ sub get_fake_param_obj_with_testable_data {
        annote_file_name => "all_annote.txt", #Each genome should have one
        grp_genes_by => "kog", # Each annote file should have this column
        gene_id_col => "proteinId", #Check for a column that matches this name
-       count_dir => "../test_dir/test_aggregate/count_dir",
-       dafe_dir => "../test_dir/test_aggregate/dafe_dir",
+       count_dir => "../t/test_dir/test_aggregate/count_dir",
+       dafe_dir => "../t/test_dir/test_aggregate/dafe_dir",
        # ^The database directory^
-       out_dir => "../test_dir/full_test_dir/test_R_stats",
-       ref_meta_file => "../test_dir/full_test_dir/fungi_test.txt", #Need to make sure this annotation file exists
+       out_dir => "../t/test_dir/full_test_dir/test_R_stats",
+       ref_meta_file => "../t/test_dir/full_test_dir/fungi_test.txt", #Need to make sure this annotation file exists
        ref_meta_cols => '["Fraction", "Source", "Label"]', #Columns used in heatmap creation and each should be a column in the metadata file
-       ref_include_file => "../test_dir/test_aggregate/test_include_file.txt", #The ids of genomes that should be included
-       ref_exclude_file => "../test_dir/full_test_dir/empty_file.txt",
+       ref_include_file => "../t/test_dir/test_aggregate/test_include_file.txt", #The ids of genomes that should be included
+       ref_exclude_file => "../t/test_dir/full_test_dir/empty_file.txt",
        # ^The exclude file should be optional ^
        genome_id_col => "ID", 
-       metaG_meta_file => "../test_dir/full_test_dir/metagenome_metadata.txt",
-       metaG_include_file => "../test_dir/full_test_dir/sample.names.txt",
-       metaG_exclude_file => "../test_dir/full_test_dir/metaG_exclude.txt", #optional parameter
-       tree => "../test_dir/full_test_dir/Rooted_test_newick.nwk",
-       grp_meta_file => "../test_dir/full_test_dir/kog_metadata.txt", #file containing all the metadata for the features being used
+       metaG_meta_file => "../t/test_dir/full_test_dir/metagenome_metadata.txt",
+       metaG_include_file => "../t/test_dir/full_test_dir/sample.names.txt",
+       metaG_exclude_file => "../t/test_dir/full_test_dir/metaG_exclude.txt", #optional parameter
+       tree => "../t/test_dir/full_test_dir/Rooted_test_newick.nwk",
+       grp_meta_file => "../t/test_dir/full_test_dir/kog_metadata.txt", #file containing all the metadata for the features being used
        count_file_name => "gene_counts_id60.txt", #this is the default value
        min_sample_count => 3, #Must be a positive integer
        min_sample_cpm => 0.03, #Must be positive and greater than 0

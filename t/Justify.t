@@ -17,7 +17,7 @@ BEGIN { use_ok( 'Param_handler' );
 my $justify_to;
 my $justify_thref;
 my $dummy_param;
-my $empty_file = "../test_dir/full_test_dir/empty_file.txt";
+my $empty_file = "../t/test_dir/full_test_dir/empty_file.txt";
 
 ###TESTS###
 
@@ -42,16 +42,16 @@ my $empty_file = "../test_dir/full_test_dir/empty_file.txt";
     
     #test a bad exclude file that has an id that does not match an id in the exclude file
     $justify_thref = get_test_href();
-    $justify_thref->{exclude_file} = "../test_dir/test_bad/sample.names.txt";
+    $justify_thref->{exclude_file} = "../t/test_dir/test_bad/sample.names.txt";
     throws_ok( sub{ $justify_to = Justify->new( $justify_thref ) }, "MyX::Generic::File", "_determine_included_ids" );
     
     #test check tree and create ordered tree href
     #Need to look at the possibility of id's being strings and not numbers. This will currently cause problems
     $justify_thref = get_test_href();
-    $justify_thref->{include_file} = "../test_dir/test_bad/full_db_names.txt";
+    $justify_thref->{include_file} = "../t/test_dir/test_bad/full_db_names.txt";
     throws_ok( sub{ $justify_to = Justify->new( $justify_thref ) }, "MyX::Generic::BadValue", "bad include file passed" );
     $justify_thref = get_test_href();
-    $justify_thref->{tree_file} = "../test_dir/test_bad/trial_raxml.nwk";
+    $justify_thref->{tree_file} = "../t/test_dir/test_bad/trial_raxml.nwk";
     throws_ok( sub{ $justify_to = Justify->new( $justify_thref ) }, "MyX::Generic::BadValue", "bad tree file" );
     
     #test check_count_dir
@@ -64,7 +64,7 @@ my $empty_file = "../test_dir/full_test_dir/empty_file.txt";
     
     #test check ids by passing in a bad metadata file
     $justify_thref = get_test_href();
-    $justify_thref->{meta_data_file} = "../test_dir/full_test_dir/metagenome_metadata.txt";
+    $justify_thref->{meta_data_file} = "../t/test_dir/full_test_dir/metagenome_metadata.txt";
     throws_ok( sub{ $justify_to = Justify->new( $justify_thref ) }, "MyX::Generic::BadValue", "bad metadata file" );
 }
 
@@ -93,12 +93,12 @@ my $empty_file = "../test_dir/full_test_dir/empty_file.txt";
 #test spew_trimmed_ordered_meta_file and spew_ordered_ids ( Tests the gets too since they are used in these methods)
 {
     $justify_to = Justify->new( get_test_href() );
-    unlink("../test_dir/full_test_dir/test_R_stats/test_meta.xml");
-	$justify_to->spew_trimmed_ordered_meta_file("../test_dir/full_test_dir/test_R_stats/test_meta.xml");
-    cmp_ok(-s "../test_dir/full_test_dir/test_R_stats/test_meta.xml", '>', 0);
-    unlink("../test_dir/full_test_dir/test_R_stats/test.xml");
-    $justify_to->spew_ordered_ids("../test_dir/full_test_dir/test_R_stats/test.xml");
-    cmp_ok(-s "../test_dir/full_test_dir/test_R_stats/test.xml", '>', 0);
+    unlink("../t/test_dir/full_test_dir/test_R_stats/test_meta.xml");
+	$justify_to->spew_trimmed_ordered_meta_file("../t/test_dir/full_test_dir/test_R_stats/test_meta.xml");
+    cmp_ok(-s "../t/test_dir/full_test_dir/test_R_stats/test_meta.xml", '>', 0);
+    unlink("../t/test_dir/full_test_dir/test_R_stats/test.xml");
+    $justify_to->spew_ordered_ids("../t/test_dir/full_test_dir/test_R_stats/test.xml");
+    cmp_ok(-s "../t/test_dir/full_test_dir/test_R_stats/test.xml", '>', 0);
 }
 
 ### SUBROUTINES ###
@@ -110,21 +110,21 @@ sub get_test_param_obj {
        annote_file_name => "all_annote.txt", #Each genome should have one
        grp_genes_by => "kog", # Each annote file should have this column
        gene_id_col => "proteinId", #Check for a column that matches this name
-       count_dir => "../test_dir/full_test_dir/DAFE_cnt_results",
-       dafe_dir => "../test_dir/full_test_dir/JGI_fungal_db",
+       count_dir => "../t/test_dir/full_test_dir/DAFE_cnt_results",
+       dafe_dir => "../t/test_dir/full_test_dir/JGI_fungal_db",
        # ^The database directory^
-       out_dir => "../test_dir/full_test_dir/test_R_stats",
-       ref_meta_file => "../test_dir/full_test_dir/fungi_test.txt", #Need to make sure this annotation file exists
+       out_dir => "../t/test_dir/full_test_dir/test_R_stats",
+       ref_meta_file => "../t/test_dir/full_test_dir/fungi_test.txt", #Need to make sure this annotation file exists
        ref_meta_cols => '["Fraction", "Source", "Label"]', #Columns used in heatmap creation and each should be a column in the metadata file
-       ref_include_file => "../test_dir/full_test_dir/names.txt", #The ids of genomes that should be included
-       ref_exclude_file => "../test_dir/full_test_dir/empty_file.txt",
+       ref_include_file => "../t/test_dir/full_test_dir/names.txt", #The ids of genomes that should be included
+       ref_exclude_file => "../t/test_dir/full_test_dir/empty_file.txt",
        # ^The exclude file should be optional ^
        genome_id_col => "ID", 
-       metaG_meta_file => "../test_dir/full_test_dir/metagenome_metadata.txt",
-       metaG_include_file => "../test_dir/full_test_dir/sample.names.txt",
-       metaG_exclude_file => "../test_dir/full_test_dir/metaG_exclude.txt", #optional parameter
-       tree => "../test_dir/full_test_dir/Rooted_test_newick.nwk",
-       grp_meta_file => "../test_dir/full_test_dir/kog_metadata.txt", #file containing all the metadata for the features being used
+       metaG_meta_file => "../t/test_dir/full_test_dir/metagenome_metadata.txt",
+       metaG_include_file => "../t/test_dir/full_test_dir/sample.names.txt",
+       metaG_exclude_file => "../t/test_dir/full_test_dir/metaG_exclude.txt", #optional parameter
+       tree => "../t/test_dir/full_test_dir/Rooted_test_newick.nwk",
+       grp_meta_file => "../t/test_dir/full_test_dir/kog_metadata.txt", #file containing all the metadata for the features being used
        count_file_name => "gene_counts_id60.txt", #this is the default value
        min_sample_count => 3, #Must be a positive integer
        min_sample_cpm => 0.03, #Must be positive and greater than 0
@@ -142,11 +142,11 @@ sub get_test_param_obj {
 sub get_test_href {
     
     my $href = {
-        include_file    => "../test_dir/full_test_dir/names.txt",
-        exclude_file    => "../test_dir/full_test_dir/empty_file.txt",
-        meta_data_file  => "../test_dir/full_test_dir/fungi_test.txt",
-        tree_file       => "../test_dir/full_test_dir/Rooted_test_newick.nwk",
-        count_dir       => "../test_dir/full_test_dir/DAFE_cnt_results",
+        include_file    => "../t/test_dir/full_test_dir/names.txt",
+        exclude_file    => "../t/test_dir/full_test_dir/empty_file.txt",
+        meta_data_file  => "../t/test_dir/full_test_dir/fungi_test.txt",
+        tree_file       => "../t/test_dir/full_test_dir/Rooted_test_newick.nwk",
+        count_dir       => "../t/test_dir/full_test_dir/DAFE_cnt_results",
         count_file_name => "gene_counts_id60.txt",
         id_col          => "ID",
     };
