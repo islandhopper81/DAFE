@@ -1,0 +1,8 @@
+kogId	col_1	col_2
+KOG01	2	2
+KOG02	1	1
+KOG03	1	1
+KOG04	1	1
+KOG05	1	1
+KOG06	1	1
+KOG07	0	0

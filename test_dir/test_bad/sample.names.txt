@@ -1,0 +1,6 @@
+col_old_rz
+col_yng_rz
+cpr_old_rz
+cpr_yng_rz
+soil_old
+soil_yng
