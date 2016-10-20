@@ -1,23 +1,23 @@
 annote_file_name: "all_annote.txt"
 grp_genes_by: "kog"
 gene_id_col: "proteinId"
-count_dir: "/lustre/scr/n/c/ncolaian/fungal_db/DAFE_cnt_results"
-dafe_dir: "/lustre/scr/n/c/ncolaian/fungal_db/JGI_fungal_db"
-out_dir: "/lustre/scr/n/c/ncolaian/fungal_db/test_R_stats"
-ref_meta_file: "/lustre/scr/n/c/ncolaian/fungal_db/fungi_test.txt"
-ref_meta_cols: '["Fraction", "Source", "Label"]'
-ref_include_file: "/lustre/scr/n/c/ncolaian/fungal_db/names.txt"
-ref_exclude_file: "/lustre/scr/n/c/ncolaian/fungal_db/empty_file.txt"
+count_dir: "t/test_dir/full_test_dir/DAFE_cnt_results"
+dafe_dir: "t/test_dir/full_test_dir/JGI_fungal_db"
+out_dir: "t/test_dir/full_test_dir/test_R_stats"
+ref_meta_file: "t/test_dir/full_test_dir/fungi_test.txt"
+ref_meta_cols: ["Fraction", "Source", "Label"]
+ref_include_file: "t/test_dir/full_test_dir/names.txt"
+ref_exclude_file: "t/test_dir/full_test_dir/empty_file.txt"
 genome_id_col: "ID"
-metaG_meta_file: "/netscr/yourston/compMetaG/metadata/metagenome_metadata.txt"
-metaG_include_file: "/netscr/yourston/compMetaG/analyses/dafe_at_mf/sample.names.txt"
-metaG_exclude_file: "/netscr/yourston/compMetaG/analyses/dafe_at_mf/metaG_exclude.txt"
-tree: "/lustre/scr/n/c/ncolaian/fungal_db/Rooted_test_newick.nwk"
-grp_meta_file: "/lustre/scr/n/c/ncolaian/fungal_db/param_files/kog_metadata.txt"
+metaG_meta_file: "t/test_dir/full_test_dir/metagenome_metadata.txt"
+metaG_include_file: "t/test_dir/full_test_dir/sample.names.txt"
+metaG_exclude_file: "t/test_dir/full_test_dir/metaG_exclude.txt"
+tree: "t/test_dir/full_test_dir/Rooted_test_newick.nwk"
+grp_meta_file: "t/test_dir/full_test_dir/kog_metadata.txt"
 count_file_name: "gene_counts_id60.txt"
 min_sample_count: 3
 min_sample_cpm: 0.03
-test_names: '["BK", "RZ"]'
+test: ["BK", "RZ"]
 test_col_name: "fraction"
 heat_filter: "FALSE"
 p3_height: 8
