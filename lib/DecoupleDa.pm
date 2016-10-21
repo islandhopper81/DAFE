@@ -27,7 +27,7 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
     sub _remake_da_with_decoupled;
     sub _check_negative_two;
     
-    sub set_param_handler;
+    sub _set_param_handler;
     sub set_count_file_name;
     
     sub get_param_handler;
@@ -41,16 +41,15 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
     #################
     
     sub new {
-        my ($class, $param_obj, $ordered_grps_aref) = @_;
+        my ($class, $param_obj) = @_;
         
         #Bless a scalar to represent the new object
         my $new_obj = bless \do{my $anon_scalar}, $class;
         
         #Handle a passed in Param_handler
         if ( $param_obj->isa( "Param_handler" ) ) {
-            $new_obj->set_param_handler($param_obj);
-            $new_obj->set_ordered_groups_aref($ordered_grps_aref);
-            $new_obj->set_count_file_name($param_obj);
+            $new_obj->_set_param_handler($param_obj);
+            $new_obj->_set_count_file_name($param_obj);
         }
         else {
             croak "Need to pass in a Param_handler object into the constructor";
@@ -123,13 +122,13 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
     
     ### SETTERS ###
     
-    sub set_param_handler {
+    sub _set_param_handler {
         my ($self, $param_obj ) = @_;
         $param_handler_obj{ident $self} = $param_obj;
         return 1;
     }
     
-    sub set_count_file_name {
+    sub _set_count_file_name {
         my ($self, $param_obj) = @_;
         
         my $count_dir = $param_obj->get_count_dir();
@@ -188,13 +187,75 @@ use MyX::Generic;
     
 =head1 Synopsis
 
+    $decouple_obj = DecoupleDa->new( $param_obj );
+    $grp_and_da_values_aref = $decouple_obj->decouple($genome_id);
+    
 =head1 Description
 
+    This object is used to decouple the -2's that are present in the count files produced from edger analysis. The decouple() method will remake the count file with the updated DA values as well as output an array ref containing array references containing the group id in the first position and the DA value in the second position.
 
 =head1 Methods
 
+sub new;
+sub decouple;
+sub _remake_da_with_decoupled;
+sub _check_negative_two;
+sub _set_param_handler;
+sub set_count_file_name;
+sub get_param_handler;
+sub get_count_file_name;
 
 =head1 Methods Description
+
+=head2  new()
+
+    Title:		new
+	Usage:		$decouple_obj = DecoupleDa->new( $param_handler_obj );
+	Function:	Creates a new instance of a DecoupleDa object
+	Returns:	DecoupleDa
+	Args:		$param_handler_obj =>   Param_handler object that has the print
+                                        parameters in it and checked.
+	Throws:		croak
+	Comments:	Need to make sure that the print params are checked in the
+                Param_handler object before passing the object for the creation
+                of a DecoupleDa object.
+	See Also:   Param_handler
+
+=head2  decouple()
+
+    Title:      decouple
+    Usage:      $decouple_obj->decouple( $genome_id );
+    Function:   Checks each group in the genome. If there is a -2 as the Da value,
+                it determines if it is there due to not enough data or because the group does not exist in the genome. After decoupling it will then update the count file with the updated decoupled information. It also returns an array reference containing array references that hold goup ids and their corresponding DA values.
+    Returns:    Array Reference containing Array References
+    Args:       $genome_id  =>  This is the genome id that will be used to find
+                                the count file countaining all the DA values.
+    Throws:     TBD
+    Comments:   NA
+    See Also:   NA
+    
+=head2  get_param_handler()
+
+    Title:      get_param_handler
+    Usage:      $decouple_obj->get_param_handler();
+    Function:   Returns the Param_handler object passed into the DecoupleDa object
+    Returns:    Param_handler
+    Args:       $decouple_obj   =>  A blessed DecoupleDa object
+    Throws:     NA
+    Comments:   NA
+    See Also:   Param_handler
+    
+=head2 get_count_file_name()
+    
+    Title:      get_count_file_name
+    Usage:      $decouple_obj->get_count_file_name();
+    Function:   Returns the name of the file found in the genomes count directory
+    Returns:    String
+    Args:       $decouple_obj   =>  A blessed DecoupleDa object
+    Throws:     NA
+    Comments:   The name will have the same extension from the data returned from
+                the edger analysis.
+    See Also:   NA
 
 
 =head1 Configuration And Environment
