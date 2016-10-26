@@ -1,6 +1,6 @@
 
 
-create_metaG_metadata_obj = function(metadata_file, include_file, exclude_file) {
+create_metaG_metadata_tbl = function(metadata_file, include_file, exclude_file) {
   # NOTE: this is actually returned as a dataframe.  Most R object are returned
   # as a list.
   
