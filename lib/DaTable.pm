@@ -13,9 +13,9 @@ use Path::Class;
 use Data::Dumper;
 use XML::Simple qw(:strict);
 use Class::Std::Utils;
-#use Scalar::Util::Numeric qw(isneg isint isfloat);
+use Scalar::Util::Numeric qw(isneg isint isfloat);
 use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
-#use MyX::Generic;
+use MyX::Generic;
 
 {
     # Attributes
@@ -26,21 +26,17 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
     my %grp_order_count_href;
     
     ### Subroutines ###
-    sub set_da_table_size;
-    sub set_grp_order_aref_and_count_hash;
-    sub set_id_order_aref_and_count_hash;
+    sub _set_da_table_size;
+    sub _set_grp_order_aref_and_count_hash;
+    sub _set_id_order_aref_and_count_hash;
     sub set_genome;
-    sub set_grp_da_value;
+    sub _set_grp_da_value;
     
     sub print_full_da_table;
     sub print_filtered_da_table;
     
-    sub get_grp_order_aref;
-    sub get_id_order_aref;
-    sub get_genome;
-    sub get_group;
-    
-    sub _check_arg_href;
+    sub _get_grp_order_aref;
+    sub _get_id_order_aref;
     sub _set_attributes;
     
     #################
@@ -74,7 +70,7 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
                 usage => "grp_order_aref needs to be in the href passed to the constructor",
             )
         }
-        elsif ( !$arg_href->{grp_order_aref} ) {
+        elsif ( !$arg_href->{id_order_aref} ) {
             MyX::Generic::Undef::Param->throw(
                 error => "id_order_aref was not passed to the constructor in the hash reference",
                 usage => "id_order_aref needs to be in the href passed to the constructor",
@@ -85,9 +81,9 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
     
     sub _set_attributes {
         my ($self, $arg_href) = @_;
-        $self->set_grp_order_aref_and_count_hash($arg_href->{grp_order_aref});
-        $self->set_id_order_aref_and_count_hash($arg_href->{id_order_aref});
-        $self->set_da_table_size(scalar($self->get_grp_order_aref()),
+        $self->_set_grp_order_aref_and_count_hash($arg_href->{grp_order_aref});
+        $self->_set_id_order_aref_and_count_hash($arg_href->{id_order_aref});
+        $self->_set_da_table_size(scalar($self->get_grp_order_aref()),
                                  scalar($self->get_id_order_aref()));
         return 1;
     }
@@ -140,12 +136,12 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
     ## GETTERS ##
     #############
     
-    sub get_grp_order_aref {
+    sub _get_grp_order_aref {
         my ($self) = @_;
         return $grp_order_aref{ident $self};
     }
     
-    sub get_id_order_aref {
+    sub _get_id_order_aref {
         my ($self) = @_;
         return $id_order_aref{ident $self};
     }
@@ -153,7 +149,7 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
     sub get_genome {
         my ($self, $genome_id) = @_;
         my $da_table_aref_aref = $self->get_full_da_table();
-        my $genome_counts_href = $self->get_id_order_count_href();
+        my $genome_counts_href = $self->_get_id_order_count_href();
         if ( $genome_counts_href->{$genome_id} ) {
             return $da_table_aref_aref->[$genome_counts_href->{$genome_id}];
         }
@@ -168,7 +164,7 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
     sub get_group {
         my ($self, $group_id) = @_;
         my $da_table_aref_aref = $self->get_full_da_table();
-        my $grp_counts_href = $self->get_grp_order_count_href();
+        my $grp_counts_href = $self->_get_grp_order_count_href();
         my @cluster_da_values;
         if ($grp_counts_href->{$group_id}) {
             foreach my $gene_aref (@$da_table_aref_aref) {
@@ -198,7 +194,7 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
     ## SETTERS ##
     #############
     
-    sub set_grp_order_aref_and_count_hash {
+    sub _set_grp_order_aref_and_count_hash {
         my ($self, $grp_aref);
         $grp_order_aref{ident $self} = $grp_aref;
         my $count_href = {};
@@ -209,7 +205,7 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
         return 1;
     }
     
-    sub set_id_order_aref_and_count_hash {
+    sub _set_id_order_aref_and_count_hash {
         my ($self, $id_aref) = @_;
         $id_order_aref{ident $self} = $id_aref;
         my $count_href = {};
@@ -220,13 +216,13 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
         return 1;
     }
     
-    sub set_da_table_size {
+    sub _set_da_table_size {
         my ($self, $grp_size, $id_size) = @_;
         my @id_array;
-        my $grp_da_aref = [];
+        #my $grp_da_aref = [$grp_size-1];
         $id_array[$id_size-1] = 0; #create an array the full size
         for (my $i = 0; $i < $id_size; $i++) {
-            $id_array[$i] = $grp_da_aref;
+            $id_array[$i] = [$grp_size-1];
         }
         $da_matrix{ident $self} = \@id_array;
         return 1;
@@ -248,7 +244,7 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
         return 1;
     }
     
-    sub set_grp_da_value {
+    sub _set_grp_da_value {
         my ($self, $genome_pos, $grp_id, $da_value) = @_;
         my $grp_counts_href = $self->get_grp_order_count_href();
         #put error for if the grp doesn't match one in the ordered grps
@@ -298,13 +294,111 @@ use MyX::Generic;
     
 =head1 Synopsis
 
+my $da_table_obj = DaTable->new( { grp_order_aref => $grp_aref,
+                                   id_order_aref  => $id_ref });
+$da_table_obj->set_genome( $genome_id, $grp_da_value_aref_aref );
+$da_table_obj->get_genome( $genome_id );
+$da_table_obj->get_group( $grp_id );
+$da_table_obj->print_full_da_table( $outfile );
+$da_table_obj->print_filtered_da_table( $outfile, $filter_obj );
+
+
 =head1 Description
 
+This object holds the differential abundance values of all the groups in each individual genome. It takes the decoupled da data and combines it to a single table. The object also allows you to print a filtered da table by calling the print filtered da table (subject to change). 
 
 =head1 Methods
 
+sub new;
+sub _check_arg_href;
+sub _set_attributes;
+sub print_full_da_table;
+sub print_filtere_da_table;
+sub _get_grp_order_aref;
+sub _get_id_order_aref;
+sub get_genome;
+sub get_group;
+sub get_full_da_table;
+sub _set_grp_order_aref_and_count_hash;
+sub _set_id_order_aref_and_count_hash;
+sub _set_da_table_size;
+sub set_genome;
+sub _set_grp_da_value;
 
 =head1 Methods Description
+
+=head2  new()
+    
+    Title:      new
+    Usage:      $da_table_obj = DaTable->new( { grp_order_aref => $grp_order_aref
+                                                id_order_aref => $id_order_aref});
+    Function:   This creates a new da table object that holds a matrix that are
+                the dimensions of the scalars of the id_array x grp_array
+    Returns:    DaTable
+    Args:       HashRef containing grp_order_aref and id_order_aref
+                grp_order_aref  =>  This is an array ref containing all the grps
+                                    in the analysis in the correct order
+                id_order_aref   =>  This is an array ref containing all the ids
+                                    in the analysis, in the correct order
+    Throws:     croak
+                MyX::Generic::Undef::Param
+                
+    Comments:   The ordered arefs can, and probably should, come from Justify
+                and Aggregate objects. 
+    See Also:   Justify and Aggregate objects. Look at DecoupleDa program to check
+                 the output structure that is being read by this program.
+                 
+=head2  get_genome()
+    
+    Title:      get_genome
+    Usage:      $da_table_obj->get_genome( $genome_id );
+    Function:   Returns an array references containing all the da values from that
+                genome, in the correct grp order
+    Returns:    Array Reference
+    Args:       $genome_id  =>  A genome id that is included in the analysis
+    Throws:     MyX::General::BadValue;
+    Comments:   NA
+    See Also:   NA
+    
+=head2  get_group()
+
+    Title:      get_group
+    Usage:      $da_table_obj->get_group( $group_id );
+    Function:   Returns an array reference containing the da values of that group
+                for every single genome in the analysis. It will be in the correct genome order
+    Returns:    Array Reference
+    Args:       $group_id   =>  This is the id of the group
+    Throws:     MyX::Generic::BadValue
+    Comments:   Check the annotation files and grp metadata files for the exact
+                spelling of the group. CAPITALIZATION MATTERS
+    See Also:   NA
+    
+=head2  get_full_da_table()
+    
+    Title:      get_full_da_table
+    Usage:      $da_table_obj->get_full_da_table();
+    Function:   Returns an array reference of array references that represents
+                the full genome x group matrix
+    Returns:    Array Reference of array references
+    Args:       $da_table_obj   =>  A blessed DaTable object. Table should be
+                                    filled using set genome
+    Throws:     NA
+    Comments:   NA
+    See Also:   NA
+    
+=head2  set_genome()
+
+    Title:      set_genome
+    Usage:      $da_table_obj->set_genome( $genome_id, $grp_da_aref_aref );
+    Function:   Sets the da values of one of the genomes in the matrix contained
+                in the DaTable object
+    Returns:    1
+    Args:       $genome_id  =>  This is the id of one of the genomes included in
+                                the analysis
+                $grp_da_aref_aref   =>  An array reference containing array references that pairs a da value with a grp_id. This is from a DecoupleDa object
+    Throws:     MyX::Generic::BadValue
+    Comments:   NA
+    See Also:   DecoupleDa
 
 
 =head1 Configuration And Environment

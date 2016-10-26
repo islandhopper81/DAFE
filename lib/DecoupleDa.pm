@@ -4,7 +4,7 @@ package DecoupleDa;
 
 use strict;
 use warnings;
-#use Param_handler;
+use Param_handler;
 use Getopt::Long;
 use Pod::Usage;
 use Carp;
@@ -13,9 +13,9 @@ use Path::Class;
 use Data::Dumper;
 use XML::Simple qw(:strict);
 use Class::Std::Utils;
-#use Scalar::Util::Numeric qw(isneg isint isfloat);
+use Scalar::Util::Numeric qw(isneg isint isfloat);
 use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
-#use MyX::Generic;
+use MyX::Generic;
 
 {
     #Attributes
@@ -29,6 +29,7 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
     
     sub _set_param_handler;
     sub set_count_file_name;
+    sub manually_set_cnt_file_name_from_edger;
     
     sub get_param_handler;
     sub get_count_file_name;
@@ -65,11 +66,18 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
     sub decouple {
         my ($self, $genome_id) = @_;
         my $param_obj = $self->get_param_handler();
-        my $grp_aref = $self->get_ordered_grp_aref();
         #Need to get count and dafe directories file handles
         my $count_f_name = $self->get_count_file_name();
         my $count_dir = $param_obj->get_count_dir();
         my $count_file = "$count_dir/$genome_id/$count_f_name";
+        #check the count file
+        if (!-e $count_file) {
+            MyX::Generic::BadValue->throw(
+                error => "$count_f_name is not the name of the count file from edger. Manually set it with manually_set_cnt_file_name_from_edger()",
+                value => $count_f_name,
+            );
+        }
+        
         my $dafe_dir = $param_obj->get_dafe_dir();
         my $annote_name = $param_obj->get_annote_file_name();
         my $annote_file = "$dafe_dir/$genome_id/$annote_name";
@@ -77,8 +85,7 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
         #create file objects that will be read in
         my $count_file_obj = file($count_file);
         my $annote_file_obj = file($annote_file);
-        
-        
+            
         #create a slurped array 
         my @count_file_a = $count_file_obj->slurp(chomp=>1, split=>qr/\t/);
         my $slurped_annote_file = $annote_file_obj->slurp();
@@ -92,16 +99,19 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
             }
         }
         _remake_da_with_decoupled(\@count_file_a, $count_file); #print decoupled info in old file
+        if ( -z "$count_file" ) {
+            croak "new file that was supposed to be remade with new da values is empty";
+        }
         #return a hash reference of hash references
         return \@count_file_a;
     }
     
     sub _remake_da_with_decoupled {
-        my ($count_file_aref_aref, $count_file);
-        open (my $CF_FH, ">", "$count_file"); #opens file for writing note appending
+        my ($count_file_aref_aref, $file) = @_;
+        open (my $CF_FH, ">", $file); #opens file for writing, not appending
         
         foreach my $line ( @$count_file_aref_aref ) {
-            print join "\t", @$line;
+            print $CF_FH join("\t", @$line), "\n";
         }
         close $CF_FH;
         
@@ -124,6 +134,8 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
     
     sub _set_param_handler {
         my ($self, $param_obj ) = @_;
+        $param_obj->check_print_params();
+        $param_obj->_check_count_file_name();
         $param_handler_obj{ident $self} = $param_obj;
         return 1;
     }
@@ -131,13 +143,18 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
     sub _set_count_file_name {
         my ($self, $param_obj) = @_;
         
-        my $count_dir = $param_obj->get_count_dir();
-        my $count_f_name = $param_obj->get_annote_file_name();
+        my $count_f_name = $param_obj->get_count_file_name();
         my $grp_genes_by = $param_obj->get_grp_genes_by();
-        $count_f_name = $count_f_name =~ s/\.txt//;
-        $count_f_name .= "_$grp_genes_by" . "_agg_da_tbl.txt";
+        $count_f_name =~ s/\.txt//;
+        $count_f_name .= "_$grp_genes_by" . "_agg_da_vec.txt";
         $count_file_names{ident $self} = $count_f_name;
         
+        return 1;
+    }
+    #add to documentation
+    sub manually_set_cnt_file_name_from_edger {
+        my ($self, $name_string ) = @_;
+        $count_file_names{ident $self} = $name_string;
         return 1;
     }
     

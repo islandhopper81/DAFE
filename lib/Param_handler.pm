@@ -41,12 +41,12 @@ genome_id_col
 metaG_meta_file
 metaG_include_file
 metaG_exclude_file
-count_file_name
 min_sample_count
 min_sample_cpm
 test_names
 test_col_name
 grp_meta_file
+count_file_name
 							     );
   
   Readonly::Hash my %REQUIRED_PRINT_TAGS => map { $_ => 1 } qw(
@@ -173,7 +173,6 @@ heat_filter
     $self->_check_metaG_meta_file();
     $self->_check_metaG_include_file();
     $self->_check_metaG_exclude_file();
-    $self->_check_count_file_name();
     $self->_check_min_sample_count();
     $self->_check_min_sample_cpm();
     $self->_check_test_names();
@@ -206,6 +205,7 @@ heat_filter
     $self->_check_ref_exclude_file();
     $self->_check_tree();
     $self->_check_out_dir();
+		$self->_check_count_file_name();
   }
 
   sub spew_xml_file {
