@@ -33,10 +33,11 @@ use MyX::Generic;
     sub _set_grp_da_value;
     
     sub print_full_da_table;
+    sub check_for_unset_values;
     sub print_filtered_da_table;
     
-    sub _get_grp_order_aref;
-    sub _get_id_order_aref;
+    sub get_grp_order_aref;
+    sub get_id_order_aref;
     sub _set_attributes;
     
     #################
@@ -55,6 +56,8 @@ use MyX::Generic;
         else {
             croak "Must pass in a hash ref containing grp_order_aref and id_order_aref in order to create a DaTable object \n";
         }
+        
+        return $new_obj;
     }
     
     
@@ -83,8 +86,8 @@ use MyX::Generic;
         my ($self, $arg_href) = @_;
         $self->_set_grp_order_aref_and_count_hash($arg_href->{grp_order_aref});
         $self->_set_id_order_aref_and_count_hash($arg_href->{id_order_aref});
-        $self->_set_da_table_size(scalar($self->get_grp_order_aref()),
-                                 scalar($self->get_id_order_aref()));
+        $self->_set_da_table_size(scalar( @{$self->get_grp_order_aref()} ),
+                                 scalar( @{$self->get_id_order_aref()} ) );
         return 1;
     }
     
@@ -94,7 +97,7 @@ use MyX::Generic;
     
     sub print_full_da_table {
         my ($self, $outfile) = @_;
-        open my $FDA_FH, "<", "$outfile";
+        open (my $FDA_FH, ">", $outfile);
         
         my $ordered_ids_aref = $self->get_id_order_aref();
         my $ordered_grps_aref = $self->get_grp_order_aref();
@@ -112,7 +115,7 @@ use MyX::Generic;
     
     sub print_filtered_da_table {
         my ($self, $outfile, $filter_obj) = @_;
-        open my $FILTER_FH, "<", "$outfile";
+        open my $FILTER_FH, ">", $outfile;
         
         my $ordered_ids_aref = $self->get_id_order_aref();
         my $ordered_grps_aref = $self->get_grp_order_aref();
@@ -132,16 +135,44 @@ use MyX::Generic;
         return 1;
     }
     
+    sub check_for_unset_values {
+        my ($self) = @_;
+        my $da_table = $self->get_full_da_table();
+        my $grp_order_aref = $self->get_grp_order_aref();
+        my $id_order_aref = $self->get_id_order_aref();
+        
+        @genome_and_grp_pairs_with_missing_values;
+        
+        for ( my $i = 0; $i < scalar @$id_order_aref; $i++) {
+            for (my $j = 0; $j < scalar @$grp_order_aref; $j++) {
+                if ( ${$da_table->[$i]}->[$j] == 4) {
+                    my $missing = [ $id_order_aref->[$i], $grp_order_aref->[$j] ];
+                    push @genome_and_grp_paris_with_missing_values, join("=>", @$missing);
+                }
+            }
+        }
+        
+        if ( scalar @genome_and_grp_pairs_with_missing_values >= 0 ) {
+            MyX::Generic::Undef::Attribute->throw(
+                error => join(", ", @genome_and_grp_pairs_with_missing_values),
+                att_name => "Missing Values",
+                );
+        }
+        
+        return 1;
+    }
+    
+    
     #############
     ## GETTERS ##
     #############
     
-    sub _get_grp_order_aref {
+    sub get_grp_order_aref {
         my ($self) = @_;
         return $grp_order_aref{ident $self};
     }
     
-    sub _get_id_order_aref {
+    sub get_id_order_aref {
         my ($self) = @_;
         return $id_order_aref{ident $self};
     }
@@ -149,12 +180,12 @@ use MyX::Generic;
     sub get_genome {
         my ($self, $genome_id) = @_;
         my $da_table_aref_aref = $self->get_full_da_table();
-        my $genome_counts_href = $self->_get_id_order_count_href();
-        if ( $genome_counts_href->{$genome_id} ) {
+        my $genome_counts_href = $self->get_id_order_count_href();
+        if ( exists $genome_counts_href->{$genome_id} ) {
             return $da_table_aref_aref->[$genome_counts_href->{$genome_id}];
         }
         else {
-            MyX::General::BadValue->throw(
+            MyX::Generic::BadValue->throw(
                 error => "$genome_id is not included in ordered genome ids array",
                 value => "$genome_id",
             );
@@ -164,9 +195,9 @@ use MyX::Generic;
     sub get_group {
         my ($self, $group_id) = @_;
         my $da_table_aref_aref = $self->get_full_da_table();
-        my $grp_counts_href = $self->_get_grp_order_count_href();
+        my $grp_counts_href = $self->get_grp_order_count_href();
         my @cluster_da_values;
-        if ($grp_counts_href->{$group_id}) {
+        if (exists $grp_counts_href->{$group_id}) {
             foreach my $gene_aref (@$da_table_aref_aref) {
                 push(@cluster_da_values,
                      $gene_aref->[$grp_counts_href->{$group_id}]);
@@ -187,6 +218,16 @@ use MyX::Generic;
         return $da_matrix{ident $self};
     }
     
+    #Need to add the two href getters to documetation
+    sub get_id_order_count_href {
+        my ($self) = @_;
+        return $id_order_count_href{ident $self};
+    }
+    
+    sub get_grp_order_count_href {
+        my ($self) = @_;
+        return $grp_order_count_href{ident $self};
+    }
     
     
     
@@ -195,7 +236,7 @@ use MyX::Generic;
     #############
     
     sub _set_grp_order_aref_and_count_hash {
-        my ($self, $grp_aref);
+        my ($self, $grp_aref) = @_;
         $grp_order_aref{ident $self} = $grp_aref;
         my $count_href = {};
         for (my $i = 0; $i < scalar @$grp_aref; $i++) {
@@ -219,10 +260,12 @@ use MyX::Generic;
     sub _set_da_table_size {
         my ($self, $grp_size, $id_size) = @_;
         my @id_array;
-        #my $grp_da_aref = [$grp_size-1];
-        $id_array[$id_size-1] = 0; #create an array the full size
+        #$id_array[$id_size-1] = 0; #create an array the full size
         for (my $i = 0; $i < $id_size; $i++) {
-            $id_array[$i] = [$grp_size-1];
+            push @id_array, [];
+            for (my $j = 0; $j < $grp_size; $j++) {
+                push @{ $id_array[$i] }, 4;   
+            }
         }
         $da_matrix{ident $self} = \@id_array;
         return 1;
@@ -231,15 +274,19 @@ use MyX::Generic;
     sub set_genome {
         my ($self, $genome_id, $da_with_grp_id_aref_aref) = @_;
         my $genome_counts_href = $self->get_id_order_count_href();
-        #put a error if genome doesn't match one in the ordered genome ids
+        #put an error if genome doesn't match one in the ordered genome ids
+        if ( !exists $genome_counts_href->{$genome_id} ) {
+            carp "$genome_id is not in the ordered genome id passed";
+            return;
+        }
         
         my $genome_pos = $genome_counts_href->{$genome_id};
-        
+
         foreach my $grp_da_combo_aref ( @$da_with_grp_id_aref_aref ) {
             my $grp_id = $grp_da_combo_aref->[0];
             my $da_value = $grp_da_combo_aref->[1];
             
-            $self->set_grp_da_value($genome_pos, $grp_id, $da_value);
+            $self->_set_grp_da_value($genome_pos, $grp_id, $da_value);
         }
         return 1;
     }
@@ -248,12 +295,16 @@ use MyX::Generic;
         my ($self, $genome_pos, $grp_id, $da_value) = @_;
         my $grp_counts_href = $self->get_grp_order_count_href();
         #put error for if the grp doesn't match one in the ordered grps
+        if ( !exists $grp_counts_href->{$grp_id} ) {
+            carp "$grp_id is in the edger file but not in the grp metadata file";
+            return;
+        }
         
         my $grp_pos = $grp_counts_href->{$grp_id};
         
         my $da_table_aref_aref = $self->get_full_da_table();
         #set the individual grp value equal to the da value
-        ${ $da_table_aref_aref->{$genome_pos} }->{$grp_pos} = $da_value;
+        @{ $da_table_aref_aref->[$genome_pos] }->[$grp_pos] = $da_value;
         #set the da matrix to the updated matrix
         $da_matrix{ident $self} = $da_table_aref_aref;
         
