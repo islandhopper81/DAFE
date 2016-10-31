@@ -34,7 +34,6 @@ use MyX::Generic;
     
     sub print_full_da_table;
     sub check_for_unset_values;
-    sub print_filtered_da_table;
     
     sub get_grp_order_aref;
     sub get_id_order_aref;
@@ -112,42 +111,20 @@ use MyX::Generic;
         close $FDA_FH;
         return 1;
     }
-    
-    sub print_filtered_da_table {
-        my ($self, $outfile, $filter_obj) = @_;
-        open my $FILTER_FH, ">", $outfile;
-        
-        my $ordered_ids_aref = $self->get_id_order_aref();
-        my $ordered_grps_aref = $self->get_grp_order_aref();
-        
-        print $FILTER_FH "grp_id\t", join("\t", @$ordered_ids_aref), "\n" ;
-        #Goes through and filters each cluster and decides if it should be printed
-        foreach my $grp_id ( @$ordered_grps_aref ) {
-            if ( $filter_obj->filter( $self->get_group($grp_id) ) == 1 ) {
-                print $FILTER_FH "$grp_id\t",
-                                 join("\t",@{ $self->get_group($grp_id) });   
-            }
-            else {
-                next;
-            }
-        }
-        close $FILTER_FH;
-        return 1;
-    }
-    
+    #need to add to codumentation and test
     sub check_for_unset_values {
         my ($self) = @_;
         my $da_table = $self->get_full_da_table();
         my $grp_order_aref = $self->get_grp_order_aref();
         my $id_order_aref = $self->get_id_order_aref();
         
-        @genome_and_grp_pairs_with_missing_values;
+        my @genome_and_grp_pairs_with_missing_values;
         
         for ( my $i = 0; $i < scalar @$id_order_aref; $i++) {
             for (my $j = 0; $j < scalar @$grp_order_aref; $j++) {
                 if ( ${$da_table->[$i]}->[$j] == 4) {
                     my $missing = [ $id_order_aref->[$i], $grp_order_aref->[$j] ];
-                    push @genome_and_grp_paris_with_missing_values, join("=>", @$missing);
+                    push @genome_and_grp_pairs_with_missing_values, join("=>", @$missing);
                 }
             }
         }
@@ -304,7 +281,7 @@ use MyX::Generic;
         
         my $da_table_aref_aref = $self->get_full_da_table();
         #set the individual grp value equal to the da value
-        @{ $da_table_aref_aref->[$genome_pos] }->[$grp_pos] = $da_value;
+        @{ $da_table_aref_aref->[$genome_pos] }[$grp_pos] = $da_value;
         #set the da matrix to the updated matrix
         $da_matrix{ident $self} = $da_table_aref_aref;
         
@@ -356,7 +333,7 @@ $da_table_obj->print_filtered_da_table( $outfile, $filter_obj );
 
 =head1 Description
 
-This object holds the differential abundance values of all the groups in each individual genome. It takes the decoupled da data and combines it to a single table. The object also allows you to print a filtered da table by calling the print filtered da table (subject to change). 
+This object holds the differential abundance values of all the groups in each individual genome. It takes the decoupled da data and combines it to a single table. 
 
 =head1 Methods
 
@@ -364,7 +341,6 @@ sub new;
 sub _check_arg_href;
 sub _set_attributes;
 sub print_full_da_table;
-sub print_filtere_da_table;
 sub _get_grp_order_aref;
 sub _get_id_order_aref;
 sub get_genome;
