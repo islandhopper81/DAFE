@@ -7,7 +7,8 @@ use XML::Simple;
 use File::Temp qw/ tempfile tempdir /;
 use Test::Exception;
 use Test::Warn;
-use Test::More tests => 159; # Need to place the number of tests you run here.
+use Test::More tests => 176; # Need to place the number of tests you run here.
+use Data::Dumper;
 
 
 BEGIN { use_ok( 'Param_handler' ); }
@@ -63,7 +64,6 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 	#Need to test if it works without print params
 	$params_thref = get_test_href();
 	$params_thref->{p3_height} = "";
-	$params_thref->{ref_meta_cols} = "";
 	$params_thref->{heat_filter} = "";
 	$params_to = Param_handler->new( {href => $params_thref});
 	warnings_are { $params_to -> check_edger_params() } [], "just global and edger params";
@@ -75,7 +75,6 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 	$params_thref->{p3_height} = 3;
 	$params_thref->{ref_meta_cols} = '["Fraction", "Source", "Label"]';
 	$params_thref->{heat_filter} = "FALSE";
-	$params_thref->{ref_meta_file} = "../t/test_dir/full_test_dir/fungi_test.txt";
 	$params_thref->{ref_include_file} = "../t/test_dir/full_test_dir/names.txt";
 	$params_thref->{ref_exclude_file} = "../t/test_dir/full_test_dir/empty_file.txt";
 	$params_thref->{tree} = "../t/test_dir/full_test_dir/Rooted_test_newick.nwk";
@@ -106,6 +105,15 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 	cmp_ok(-s "../t/test_dir/full_test_dir/test_R_stats/test.xml", '>', 0);
 }
 
+#test the creation of a temp yaml file
+{
+	$params_to = Param_handler->new( {href => get_test_href()} );
+	my $tmp = $params_to->get_temp_yaml_file();
+	my $yaml_param_to = Param_handler->new( {yml_file => $tmp} );
+	is_deeply( $yaml_param_to->get_params_href(), $params_to->get_params_href(),
+			  "yaml file creation is correct" );
+}
+
 #test _find_unknown_tags
 {
 	$params_thref = get_test_href();
@@ -115,6 +123,25 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 }
 
 #TEST CHECKS
+
+#_check_Rsource_dir
+{
+	$params_to = Param_handler->new( {href => get_test_href} );
+	warnings_are { $params_to->_check_Rsource_dir() } [], "_check_Rsource_dir -- no warnings";
+	
+	$params_to = Param_handler->new();
+	throws_ok( sub{ $params_to->_check_Rsource_dir() }, 'MyX::Generic::Undef::Param', "_check_Rsource_dir() -- check when name isn't passed" );
+	
+	$params_thref = get_test_href();
+	$params_thref->{Rsource_dir} = "umm";
+	$params_to = Param_handler->new( {href => $params_thref} );
+	throws_ok( sub{ $params_to->_check_Rsource_dir }, 'MyX::Generic::DoesNotExist::Dir', "_check_Rsource_dir -- file doesn't exist" );
+
+	# Check to make sure if no R code is in the dir it will throw an error
+	$params_thref->{Rsource_dir} = "../t/test_dir/";
+	$params_to = Param_handler->new( {href => $params_thref} );
+	throws_ok( sub{ $params_to->_check_Rsource_dir }, 'MyX::Generic::BadValue', "_check_Rsource_dir -- give directory w/ no R code" );
+}
 
 #_check_ref_meta_file
 {
@@ -539,7 +566,36 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 	$params_to = Param_handler->new( {href => $params_thref} );
 	throws_ok( sub { $params_to->_check_heat_filter() }, 'MyX::Generic::BadValue', "_check_heat_filter -- no warnings when pass either a 0 or 1");
 }
+
+#check_filter_params
+{
+	$params_to = Param_handler->new( {href => get_test_href()} );
+	warnings_are { $params_to->check_filter_params() } [], "_check_filter_params -- no warnings";
 	
+	$params_to = Param_handler->new();
+	throws_ok( sub{ $params_to->check_filter_params() }, 'MyX::Generic::Undef::Param', "_check_filter_params -- check when filter isn't passed" );
+	
+	$params_thref = get_test_href();
+	$params_thref->{filter_params} = {"f5" => [90, "false"]};
+	$params_to = Param_handler->new( {href => $params_thref} );
+	throws_ok( sub { $params_to->check_filter_params() }, 'MyX::Generic::Undef::Attribute', "_check_filter_params -- bad filter");
+
+	$params_thref = get_test_href();
+	$params_thref->{filter_params} = {"f1" => [90]};
+	$params_to = Param_handler->new( {href => $params_thref} );
+	throws_ok( sub { $params_to->check_filter_params() }, 'MyX::Generic::Undef::Param', "_check_filter_params -- bad filter");
+
+	#check to see if wrong value throws error. Need full length false or true
+	$params_thref = get_test_href();
+	$params_thref->{filter_params} = { "f1" => [90,"t"] };
+	$params_to = Param_handler->new( {href => $params_thref} );
+	throws_ok( sub { $params_to->check_filter_params() }, 'MyX::Generic::BadValue', "_check_filter_params -- need full true and false");
+	
+	$params_thref = get_test_href();
+	$params_thref->{filter_params} = { "f1" => [104,"true"] };
+	$params_to = Param_handler->new( {href => $params_thref} );
+	throws_ok( sub { $params_to->check_filter_params() }, 'MyX::Generic::BadValue', "_check_filter_params -- bad percentage");
+}
 
 #TEST GETTERS#
 
@@ -725,6 +781,20 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 	$params_thref = { heat_filter => $dummy_param };
 	$params_to = Param_handler->new({href => $params_thref});
 	is($params_to->get_heat_filter(),$dummy_param,"get_heat_filter()");
+}
+#get_Rsource_dir
+{
+	$dummy_param = "file";
+	$params_thref = { Rsource_dir => $dummy_param };
+	$params_to = Param_handler->new({href => $params_thref});
+	is($params_to->get_Rsource_dir(),$dummy_param,"get_Rsource_dir()");
+}
+#get_filter_params
+{
+	$dummy_param = "file";
+	$params_thref = { filter_params => $dummy_param };
+	$params_to = Param_handler->new({href => $params_thref});
+	is($params_to->get_filter_params(),$dummy_param,"get_filter_params()");
 }
 
 #TEST SETTERS
@@ -1057,6 +1127,36 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 	is($params_to->get_heat_filter(),$old_value, "set_heat_filter() -- bad parameter passed");
 }
 
+#set_Rsource_dir
+{
+	$params_thref = get_test_href();
+	my $old_value = $params_thref->{Rsource_dir};
+	$params_thref->{Rsource_dir} = "filler";
+	$params_to = Param_handler->new( {href => $params_thref} );
+	$params_to->set_Rsource_dir($old_value);
+	is($params_to->get_Rsource_dir(),$old_value, "set_Rsource_dir() -- good param passed");
+	
+	#if a bad value is given to the setter it will revert to the old value
+	$dummy_param = "bad_value";
+	$params_to->set_Rsource_dir($dummy_param);
+	is($params_to->get_Rsource_dir(),$old_value, "set_Rsource_dir() -- bad parameter passed");
+}
+
+#set_filter_params
+{
+	$params_thref = get_test_href();
+	my $old_value = $params_thref->{filter_params};
+	$params_thref->{filter_params} = "filler";
+	$params_to = Param_handler->new( {href => $params_thref} );
+	$params_to->set_filter_params($old_value);
+	is_deeply($params_to->get_filter_params(),$old_value, "set_filter_params() -- good param passed");
+	
+	#if a bad value is given to the setter it will revert to the old value
+	$dummy_param = "bad_value";
+	$params_to->set_filter_params($dummy_param);
+	is_deeply($params_to->get_filter_params(),$old_value, "set_filter_params() -- bad parameter passed");
+}
+
 
 
 ### SUBROUTINES ###
@@ -1092,6 +1192,9 @@ sub get_test_href {
        test_col_name => "fraction", #where to look at the MetaG meta file to identify which group each experiment is from
        heat_filter => "FALSE", #Do the columns of the heatmap need to be filtered
        p3_height => 8, #Must be a number, but determines the plot height
+	   Rsource_dir => "/netscr/yourston/compMetaG_R_dev/R/",
+	   filter_params => { "f1" => [90, "false"],
+						"f-1" => [90,"false"], } 
     };
 
     return $xml_href;
@@ -1104,7 +1207,7 @@ sub get_test_file {
     my $xml_href = get_test_href();
 
     #write the href
-    my $xml = XMLout($xml_href);
+    my $xml = XMLout($xml_href, KeyAttr => ['filter_param_num'] );
     print $fh $xml;
 
     close($fh);

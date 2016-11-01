@@ -15,7 +15,8 @@ use Class::Std::Utils;
 use Scalar::Util::Numeric qw(isneg isint isfloat);
 use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
 use MyX::Generic;
-use YAML::XS qw(LoadFile);
+use YAML::XS qw(LoadFile DumpFile Dump);
+use File::Temp qw(tempfile tempdir);
 
 
 {
@@ -41,19 +42,29 @@ genome_id_col
 metaG_meta_file
 metaG_include_file
 metaG_exclude_file
-count_file_name
 min_sample_count
 min_sample_cpm
 test_names
 test_col_name
 grp_meta_file
+count_file_name
+Rsource_dir
+ref_meta_cols
+filter_params
 							     );
   
   Readonly::Hash my %REQUIRED_PRINT_TAGS => map { $_ => 1 } qw(
 p3_height
-ref_meta_cols
 heat_filter
 							     );
+									 
+	Readonly::Hash my %FILTER_PARAMS => map { $_ => 1 } qw(
+		f1
+		f0
+		f-1
+		f-2
+		f-3
+	);
   
 
   #SUBROUTINES#
@@ -62,6 +73,7 @@ heat_filter
   sub get_print_params;
   sub get_global_params;
   sub get_edger_params;
+	sub get_temp_yaml_file;
   sub set_params;
   sub check_print_params;
   sub check_edger_params;
@@ -95,6 +107,10 @@ heat_filter
   sub _check_big_mat;
   sub _check_p3_height;
   sub _check_heat_filter;
+	sub _check_Rsource_dir;
+	
+	sub check_filter_params;
+	
 
   sub _check_global_params;
   sub _are_global_tags_present;
@@ -119,6 +135,7 @@ heat_filter
     }
     # Initialize the attribute
     else {
+
       $new_obj -> set_params($arg_href);
     }
 
@@ -142,7 +159,7 @@ heat_filter
     }
     elsif ( defined $arg_href->{xml_file} ) {
       $attribute_hrefs_ident{ident $self} =
-			XML::Simple->new()->XMLin($arg_href->{xml_file}, KeyAttr => [], ForceArray => 0);
+			XML::Simple->new()->XMLin($arg_href->{xml_file}, KeyAttr => ['filter_param_num'], ForceArray => 0);
     }
 		elsif ( defined $arg_href->{yml_file} ) {
 			$attribute_hrefs_ident{ident $self} = LoadFile( $arg_href->{yml_file} );
@@ -173,12 +190,12 @@ heat_filter
     $self->_check_metaG_meta_file();
     $self->_check_metaG_include_file();
     $self->_check_metaG_exclude_file();
-    $self->_check_count_file_name();
     $self->_check_min_sample_count();
     $self->_check_min_sample_cpm();
     $self->_check_test_names();
     $self->_check_test_col_name();
 		$self->_check_grp_meta_file();
+		$self->_check_Rsource_dir();
   }
 
   sub check_print_params {
@@ -206,6 +223,7 @@ heat_filter
     $self->_check_ref_exclude_file();
     $self->_check_tree();
     $self->_check_out_dir();
+		$self->_check_count_file_name();
   }
 
   sub spew_xml_file {
@@ -223,10 +241,27 @@ heat_filter
 	sub spew_out {
 		my ($self) = @_;
 		my $params_href = $self->get_params_href();
-		
 		foreach my $key (keys %$params_href) {
+			if ($key eq 'filter_params') {
+				print $key, " => ", Dumper($params_href->{$key}), "\n";
+				next;
+			}
 			print $key, " => ", $params_href->{$key}, "\n";
 		}
+	}
+	
+	#Need to add to documentation
+	sub get_temp_yaml_file {
+		my ($self) = @_;
+		my $tempdir = tempdir();
+		my ($fh, $filename) = tempfile();
+		
+		my $yaml_text = Dump( $self->get_params_href() );
+		
+		print $fh $yaml_text;
+		
+		close($fh);
+		return $filename;
 	}
   
 	sub get_print_params_href {
@@ -806,7 +841,7 @@ heat_filter
     my $href  = $self->get_params_href();
     if ( !$href->{grp_meta_file} ) {
       MyX::Generic::Undef::Param->throw(
-					error => "Param not set",
+					error => "meta_file not set",
 					usage => "grp_meta_file",
 					);
     }
@@ -819,6 +854,76 @@ heat_filter
     return 1;
   }
   
+	#Need to add this to the checks tests
+	sub _check_Rsource_dir {
+		my ($self) = @_;
+		my $href = $self->get_params_href();
+		if ( !$href->{Rsource_dir} ) {
+			MyX::Generic::Undef::Param->throw(
+				error => "Rsource_code not set",
+				usage => "Rsource_code => source_code",
+			);
+		}
+		my $source_dir = $href->{Rsource_dir};
+		if ( !-d $source_dir ) {
+			MyX::Generic::DoesNotExist::Dir->throw(
+				error => "Rsource Directory passed does not exist",
+				dir_name => "Rsource_dir",
+			);
+		}
+		#check if directory contains R code
+		opendir(my $DIR, $source_dir);
+		my @files = grep(/\.R/, readdir($DIR));
+		if ( scalar(@files) == 0 ) {
+			MyX::Generic::BadValue->throw(
+				error => "$source_dir does not contain R code",
+				value => "Rsource_dir",
+			);
+		}
+		return 1;
+	}
+	# check_filter_params => needs to be added to test code and documentation
+	sub check_filter_params {
+		my ($self) = @_;
+		my $href = $self->get_params_href();
+		if ( !$href->{filter_params} ) {
+			MyX::Generic::Undef::Param->throw(
+				error => "filter_params not specified",
+				usage => "filter_params => { filter_param => [percentage, boolean] }",
+			);
+		}
+		else {
+			my $filter_href = $self->get_filter_params();
+			foreach my $key (keys %$filter_href) {
+				if ( !exists $FILTER_PARAMS{$key} ) {
+					MyX::Generic::Undef::Attribute->throw(
+						error => "one of the DA to filter in the href passed does not exist",
+						att_name => $key,
+					);
+				}
+				elsif ( scalar( @{ $filter_href->{$key} } ) != 2 ) {
+          MyX::Generic::Undef::Param->throw(
+						error => "$key does not have the correct number of arguements. Need to provide a percentage value, and true or false (true for filtering out values below the percentage value given)",
+						usage => "Key => [percentage, true/false]",
+          );
+				}
+				elsif ( (@{ $filter_href->{$key} }[1]) !~ qr/false/i &&
+							  (@{ $filter_href->{$key} }[1]) !~ qr/true/i ) {
+					MyX::Generic::BadValue->throw(
+						error => "Must have a fully spelled true/false in the second spot in the array ref associated with the DA to be filtered",
+						value => ${ $filter_href->{$key} }[1],
+					);
+				}
+				elsif ( (@{ $filter_href->{$key} }[0]) < 0 || (@{ $filter_href->{$key} }[0]) > 100 ) {
+					MyX::Generic::BadValue->throw(
+						error => "Must have a percentage between 0 and 100 -> full number represents precentage",
+						value => "80 = 80%",
+					);
+				}
+			}
+		}
+		return 1;
+	}
   #Print
   sub _check_p3_height {
     my ($self) = @_;
@@ -1156,7 +1261,31 @@ heat_filter
     }
     return 1;
   }
-
+	
+	sub set_Rsource_dir {
+		my ($self,$param) = @_;
+    my $params_href = $self->get_params_href();
+    my $old = $params_href->{Rsource_dir};
+    $params_href->{Rsource_dir} = $param;
+    eval {$self->_check_Rsource_dir()};
+    if ( my $err = Exception::Class->caught() ) {
+      $params_href->{Rsource_dir} = $old;
+    }
+    return 1;
+	}
+	
+	sub set_filter_params {
+		my ($self,$param) = @_;
+    my $params_href = $self->get_params_href();
+    my $old = $params_href->{filter_params};
+    $params_href->{filter_params} = $param;
+    eval {$self->check_filter_params()};
+    if ( my $err = Exception::Class->caught() ) {
+      $params_href->{filter_params} = $old;
+    }
+    return 1;
+	}
+	
   #GETTERS#
   #Global
   sub get_ref_meta_file {
@@ -1278,7 +1407,17 @@ heat_filter
     my $params_href = $self->get_params_href();
     return $params_href->{heat_filter};
   }
-
+	sub get_Rsource_dir {
+		my ($self) = @_;
+		my $params_href = $self->get_params_href();
+		return $params_href->{Rsource_dir};
+	}
+	sub get_filter_params {
+		my ($self) = @_;
+		my $params_href = $self->get_params_href();
+		return $params_href->{filter_params};
+	}
+	
 1;
   
 __END__

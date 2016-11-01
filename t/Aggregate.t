@@ -97,7 +97,7 @@ my $dummy_param;
     
     $agg_to->_create_aggregate_file( $count_href, "10001");
     
-    #test full aggrefate() method. look in test directory for the output file
+    #test full aggregate() method. look in test directory for the output file
     lives_ok( sub{ $agg_to->_create_aggregate_file($count_href, "10001") },
              "aggregate() on test data");
 }
@@ -163,7 +163,7 @@ sub get_fake_param_obj_with_testable_data {
        metaG_include_file => "../t/test_dir/full_test_dir/sample.names.txt",
        metaG_exclude_file => "../t/test_dir/full_test_dir/metaG_exclude.txt", #optional parameter
        tree => "../t/test_dir/full_test_dir/Rooted_test_newick.nwk",
-       grp_meta_file => "../t/test_dir/full_test_dir/kog_metadata.txt", #file containing all the metadata for the features being used
+       grp_meta_file => "../t/test_dir/test_aggregate/fake_kog_metadata.txt", #file containing all the metadata for the features being used
        count_file_name => "gene_counts_id60.txt", #this is the default value
        min_sample_count => 3, #Must be a positive integer
        min_sample_cpm => 0.03, #Must be positive and greater than 0
@@ -171,7 +171,6 @@ sub get_fake_param_obj_with_testable_data {
        test_col_name => "fraction", #where to look at the MetaG meta file to identify which group each experiment is from
        heat_filter => "FALSE", #Do the columns of the heatmap need to be filtered
        p3_height => 8, #Must be a number, but determines the plot height
-       heat_filter => "FALSE",
     };
 
     my $param_obj = Param_handler->new( {href=>$xml_href} );
