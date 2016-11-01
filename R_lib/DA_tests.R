@@ -32,7 +32,7 @@ run_edgeR_grps = function(params_obj) {
     dge = DGEList(counts=tbl, group=params_obj$test_groups)  
     
     # set the library size for normalization
-    dge$samples$lib.size = params_obj$metaG_metadata_tbl[row.names(dge$samples), "reads"]
+    dge[["samples"]][["lib.size"]] = params_obj$metaG_metadata_tbl[row.names(dge[["samples"]]), "reads"]
     
     # calculte the normalization factors
     dge = calcNormFactors(dge)
