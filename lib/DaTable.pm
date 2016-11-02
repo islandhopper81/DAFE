@@ -31,10 +31,13 @@ use MyX::Generic;
     sub _set_id_order_aref_and_count_hash;
     sub set_genome;
     sub _set_grp_da_value;
+    sub _check_da_file;
+    sub _set_datable_from_file;
     
     sub print_full_da_table;
     sub check_for_unset_values;
     
+    sub get_full_da_table;
     sub get_grp_order_aref;
     sub get_id_order_aref;
     sub _set_attributes;
@@ -49,7 +52,11 @@ use MyX::Generic;
         my $new_obj = bless \do{my $anon_scalar}, $class;
         
         #check to make sure both a grp_order_aref and id_order_aref is passed
-        if (_check_arg_href($arg_href) == 1) {
+        if ( exists $arg_href->{da_file} ) {
+            _check_da_file( $arg_href->{da_file} );
+            $new_obj->_set_datable_from_file( $arg_href->{da_file} );
+        }
+        elsif (_check_arg_href($arg_href) == 1) {
             $new_obj->_set_attributes($arg_href);
         }
         else {
@@ -90,6 +97,59 @@ use MyX::Generic;
         return 1;
     }
     
+    sub _check_da_file {
+        my ($file_path) = @_;
+        my $file_obj = file($file_path);
+        my @file_array = $file_obj->slurp(chomp=>1, split=>qw/\t/);
+        
+        if ( @{ $file_array[0] }[0] ne "grp_id" ) {
+            MyX::Generic::BadValue->throw(
+                error => "$file_path is not a DaTable file",
+                value => "DaTable file",
+            );
+        }
+        return 1;
+    }
+    
+    sub _set_datable_from_file {
+        my ($self, $file_path) = @_;
+        my $file_obj = file($file_path);
+        my @file_array = $file_obj->slurp(chomp=>1, split=>qw/\t/);
+        #get ordered ids
+        my $ordered_ids = [];
+        foreach my $id ( @{ $file_array[0]} ) {
+            if ( $id eq "grp_id" ) {
+                next;
+            }
+            push @$ordered_ids, $id;
+        }
+        $self->_set_id_order_aref_and_count_hash($ordered_ids);
+        
+        #get ordered grps
+        my $ordered_grps = [];
+        for(my $grp_line = 1; $grp_line < scalar(@file_array); $grp_line++) {
+            push @$ordered_grps, @{ $file_array[$grp_line] }[0];
+        }
+        $self->_set_grp_order_aref_and_count_hash($ordered_grps);
+        
+        #set da_table
+        $self->_set_da_table_size(scalar(@$ordered_grps), scalar(@$ordered_ids));
+        
+        #get and set each genome
+        for(my $i = 1; $i <= scalar(@$ordered_ids); $i++) {
+            my $genome = $ordered_ids->[$i-1];
+            my $genome_da_info = [];
+            for(my $j = 1; $j <= scalar(@$ordered_grps); $j++) {
+                my $grp = $ordered_grps->[$j-1];
+                my $grp_da_info = $file_array[$j];
+                my $grp_with_da = [ $grp, $grp_da_info->[$i] ];
+                push @$genome_da_info, $grp_with_da;
+            }
+            $self->set_genome($genome, $genome_da_info);
+        }
+        return 1;
+    }
+    
     ##############
     ## PRINTERS ##
     ##############
@@ -117,19 +177,20 @@ use MyX::Generic;
         my $da_table = $self->get_full_da_table();
         my $grp_order_aref = $self->get_grp_order_aref();
         my $id_order_aref = $self->get_id_order_aref();
-        
         my @genome_and_grp_pairs_with_missing_values;
-        
         for ( my $i = 0; $i < scalar @$id_order_aref; $i++) {
             for (my $j = 0; $j < scalar @$grp_order_aref; $j++) {
-                if ( ${$da_table->[$i]}->[$j] == 4) {
+                if ( @{$da_table->[$i]}[$j] ne "1" &&
+                     @{$da_table->[$i]}[$j] ne "-3" &&
+                     @{$da_table->[$i]}[$j] ne "-2" &&
+                     @{$da_table->[$i]}[$j] ne "-1" &&
+                     @{$da_table->[$i]}[$j] ne "0" ) {
                     my $missing = [ $id_order_aref->[$i], $grp_order_aref->[$j] ];
                     push @genome_and_grp_pairs_with_missing_values, join("=>", @$missing);
                 }
             }
         }
-        
-        if ( scalar @genome_and_grp_pairs_with_missing_values >= 0 ) {
+        if ( scalar @genome_and_grp_pairs_with_missing_values > 0 ) {
             MyX::Generic::Undef::Attribute->throw(
                 error => join(", ", @genome_and_grp_pairs_with_missing_values),
                 att_name => "Missing Values",

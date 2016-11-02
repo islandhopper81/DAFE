@@ -8,7 +8,7 @@ use XML::Simple qw(:strict);
 use File::Temp qw/ tempfile tempdir /;
 use Test::Exception;
 use Test::Warn;
-use Test::More tests => 15; # Need to place the number of tests you run here.
+use Test::More tests => 20; # Need to place the number of tests you run here.
 
 BEGIN { use_ok( 'DaTable' )}
 
@@ -62,6 +62,16 @@ my $dummy_param;
     
     lives_ok( sub{ $da_tbl_to->print_full_da_table("../t/test_dir/test_full_da_tbl.txt") }, "full print lives" );
     
+    #test the passing of a da_table file
+    lives_ok( sub{ $dummy_param = DaTable->new( {'da_file' => "../t/test_dir/test_full_da_tbl.txt",} ) }, "create DaTable with file");
+    throws_ok( sub{ my $fail = DaTable->new( {'da_file' => "../t/test_dir/test_aggregate/test_include_file.txt"} ) }, "MyX::Generic::BadValue", "pass bad file to constructor");
+    
+    is_deeply( $dummy_param->get_full_da_table(), $da_tbl_to->get_full_da_table(),"creation of DaTable from file is correct");
+    
+    
+    lives_ok( sub{ $da_tbl_to->check_for_unset_values()}, "check good da_table");
+    $da_tbl_to->set_genome(10002, [['KOG01', 4]]);
+    throws_ok( sub{ $da_tbl_to->check_for_unset_values()}, "MyX::Generic::Undef::Attribute", "throwsfor bad set value");
 }
 
 
@@ -89,7 +99,7 @@ sub get_fake_param_obj_with_testable_data {
        count_file_name => "gene_counts_id60.txt", #this is the default value
        min_sample_count => 3, #Must be a positive integer
        min_sample_cpm => 0.03, #Must be positive and greater than 0
-       test_names => '["BK", "RZ"]', #defines the two sample groups to compare
+       test => '["BK", "RZ"]', #defines the two sample groups to compare
        test_col_name => "fraction", #where to look at the MetaG meta file to identify which group each experiment is from
        heat_filter => "FALSE", #Do the columns of the heatmap need to be filtered
        p3_height => 8, #Must be a number, but determines the plot height

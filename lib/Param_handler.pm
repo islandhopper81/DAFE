@@ -44,7 +44,7 @@ metaG_include_file
 metaG_exclude_file
 min_sample_count
 min_sample_cpm
-test_names
+test
 test_col_name
 grp_meta_file
 count_file_name
@@ -192,7 +192,7 @@ heat_filter
     $self->_check_metaG_exclude_file();
     $self->_check_min_sample_count();
     $self->_check_min_sample_cpm();
-    $self->_check_test_names();
+    $self->_check_test();
     $self->_check_test_col_name();
 		$self->_check_grp_meta_file();
 		$self->_check_Rsource_dir();
@@ -263,6 +263,16 @@ heat_filter
 		close($fh);
 		return $filename;
 	}
+	#Add to test and documentation
+	sub print_yaml_file {
+		my ($self, $outfile) = @_;
+		open (my $fh, ">", $outfile);
+		
+		my $yaml_text = Dump( $self->get_params_href() );
+		print $fh $yaml_text;
+		close($fh);
+		return 1;
+	}
   
 	sub get_print_params_href {
 		my ($self) = @_;
@@ -299,7 +309,7 @@ heat_filter
 			'count_file_name'  => $self->get_count_file_name(),
 			'min_sample_count' => $self->get_min_sample_count(),
 			'min_sample_cpm'   => $self->get_min_sample_cpm(),
-			'test_names'       => $self->get_test_names(),
+			'test'       			 => $self->get_test(),
 			'test_col_name'    => $self->get_test_col_name(),
 			'grp_meta_file'    => $self->get_grp_meta_file(),
 			};
@@ -767,18 +777,18 @@ heat_filter
     return 1;
   }
   
-  sub _check_test_names {
+  sub _check_test {
     my ($self) = @_;
-    my $test = $self->get_test_names();
+    my $test = $self->get_test();
     my $href  = $self->get_params_href();
-    if ( !$href->{test_names} ) {
+    if ( !$href->{test} ) {
       MyX::Generic::Undef::Param->throw(
 					error => "Param not set",
 					usage => "test",
 				       );
     }
     else {
-      #Check the test_column in the meta file for test_names
+      #Check the test_column in the meta file for test
       my $test_col = $self->get_test_col_name();
       my $metaG_meta_file_obj = file($self->get_metaG_meta_file());
       my @slurped_meta_file = $metaG_meta_file_obj->slurp( chomp => 1, split => qr/\t/);
@@ -895,6 +905,7 @@ heat_filter
 		else {
 			my $filter_href = $self->get_filter_params();
 			foreach my $key (keys %$filter_href) {
+				$key = lc($key);
 				if ( !exists $FILTER_PARAMS{$key} ) {
 					MyX::Generic::Undef::Attribute->throw(
 						error => "one of the DA to filter in the href passed does not exist",
@@ -1193,14 +1204,14 @@ heat_filter
     }
     return 1;
   }
-  sub set_test_names {
+  sub set_test {
     my ($self,$param) = @_;
     my $params_href = $self->get_params_href();
-    my $old = $params_href->{test_names};
-    $params_href->{test_names} = $param;
-    eval {$self->_check_test_names()};
+    my $old = $params_href->{test};
+    $params_href->{test} = $param;
+    eval {$self->_check_test()};
     if ( my $err = Exception::Class->caught() ) {
-      $params_href->{test_names} = $old;
+      $params_href->{test} = $old;
     }
     return 1;
   }
@@ -1375,10 +1386,10 @@ heat_filter
     my $params_href = $self->get_params_href;
     return $params_href->{min_sample_cpm};
   }
-  sub get_test_names {
+  sub get_test {
     my ($self) = @_;
     my $params_href = $self->get_params_href;
-    return $params_href->{test_names};
+    return $params_href->{test};
   }
   sub get_test_col_name {
     my ($self) = @_;
@@ -1488,7 +1499,7 @@ use YAML::XS qw(LoadFile);
 		$count_file_name    = $param_obj->get_count_file_name();
 		$min_sample_count   = $param_obj->get_sample_count();
 		$min_sample_cpm     = $param_obj->get_min_sample_cpm();
-		$test_names         = $param_obj->get_test_names();
+		$test         			= $param_obj->get_test();
 		$test_col_name      = $param_obj->get_test_col_name();
 		$grp_meta_file      = $param_obj->get_grp_meta_file();
 		$p3_height          = $param_obj->get_p3_height();
@@ -1515,7 +1526,7 @@ use YAML::XS qw(LoadFile);
 		$param_obj->set_count_file_name();
 		$param_obj->set_sample_count();
 		$param_obj->set_min_sample_cpm();
-		$param_obj->set_test_names();
+		$param_obj->set_test();
 		$param_obj->set_test_col_name();
 		$param_obj->set_grp_meta_file();
 		$param_obj->set_p3_height();
@@ -1562,7 +1573,7 @@ files, and heat filter.
 	get_count_file_name();
 	get_sample_count();
 	get_min_sample_cpm();
-	get_test_names();
+	get_test();
 	get_test_col_name();
 	get_grp_meta_file();
 	get_p3_height();
@@ -1693,7 +1704,7 @@ files, and heat filter.
 								out_dir, annote_file_name, grp_genes_by, gene_id_col,
 								count_dir, dafe_dir, genome_id_col, metaG_meta_file,
 								metaG_include_file, metaG_exclude_file, count_file_name,
-								min_sample_count, min_sample_cpm, test_names, test_col_name,
+								min_sample_count, min_sample_cpm, test, test_col_name,
 								grp_meta_file, p3_height, ref_meta_cols, heat_filter }()
 								
 	Title:		Individual Setters
@@ -1710,7 +1721,7 @@ files, and heat filter.
 								out_dir, annote_file_name, grp_genes_by, gene_id_col,
 								count_dir, dafe_dir, genome_id_col, metaG_meta_file,
 								metaG_include_file, metaG_exclude_file, count_file_name,
-								min_sample_count, min_sample_cpm, test_names, test_col_name,
+								min_sample_count, min_sample_cpm, test, test_col_name,
 								grp_meta_file, p3_height, ref_meta_cols, heat_filter }()
 								
 	Title:		Individual Getters

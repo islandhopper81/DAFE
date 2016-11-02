@@ -87,7 +87,7 @@ use MyX::Generic;
         my $annote_file_obj = file($annote_file);
             
         #create a slurped array 
-        my @count_file_a = $count_file_obj->slurp(chomp=>1, split=>qr/\t/);
+        my @count_file_a = $count_file_obj->slurp(chomp=>1, split=>qr/\s/);
         my $slurped_annote_file = $annote_file_obj->slurp();
         
         #go through each kog and check the DA Value

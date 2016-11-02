@@ -4,11 +4,8 @@ use strict;
 use warnings;
 use lib "../lib";
 use Param_handler;
-use Justify;
-use Aggregate;
 use DaTable;
 use DaFilter;
-use DecoupleDa;
 use Getopt::Long;
 use Pod::Usage;
 use Carp;
@@ -21,20 +18,20 @@ use Scalar::Util::Numeric qw(isneg isint isfloat);
 use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
 use MyX::Generic;
 use YAML::XS qw(LoadFile);
-use File::Temp qw(tempfile tempdir);
 
 # My Variables
 my $help = 0;
 my $man = 0;
 my $xml_file;
 my $yml_file; # Will hold the param file passed into the driver
-my $out_dir; #place to put the ordered ids and meta_file
+my $full_da_table_file; #place to put the ordered ids and meta_file
 
 # Read in variables from the command line
 GetOptions ('man'  => \$man,
             'help' => \$help,
             'xml_file|x=s' => \$xml_file,
             'yml_file|y=s' => \$yml_file,
+            'da_file=s'    => \$full_da_table_file,
             ) || die("There was an error in the command line arguements\n");
 
 #kill program if neither a xml or txt file is passed
@@ -42,6 +39,7 @@ if (!defined $xml_file && !defined $yml_file) {
     croak("Must pass in a text file with newline characters, or an xml file.
           Do this by specifying the file with either -xml_file or -txt_file");
 }
+
 
 # Use Pod usage for the Manual and Help pages
 if ( $help ) { pod2usage(0) }
@@ -52,7 +50,7 @@ if ( $man )  {pod2usage(-verbose => 3) }
 # MAIN #
 
 my $param_obj;
-#Create a Param_handler object and check the edgeR Params. Put this in the param hendler
+#Create a Param_handler object and check the Filter Param.
 if (defined $xml_file) {
     $param_obj = Param_handler->new( { xml_file => $xml_file } );
 }
@@ -60,93 +58,50 @@ elsif (defined $yml_file) {
     #my $param_href = find_param_values_from_txt_file($yml_file);
     $param_obj = Param_handler->new( { yml_file => $yml_file } );
 }
-$param_obj->check_edger_params();
+#Just Check the filter params
+$param_obj->check_filter_params();
 
-# Need to justify the tree, metadata file, count dir, and include file and print files
-my $justify_obj = Justify->new( $param_obj );
-$out_dir = $param_obj->get_out_dir();
-my $ids_out = $out_dir . "/ordered_ids.txt";
-my $meta_out = $out_dir . "/ordered_metafile.txt";
-$justify_obj->spew_trimmed_ordered_meta_file( $meta_out );
-$justify_obj->spew_ordered_ids( $ids_out );
+#Create DaTable from file and then Filter obj
+my $da_table_obj = DaTable->new( {'da_file' => $full_da_table_file} );
+my $da_filter_obj = DaFilter->new( $da_table_obj );
 
-# Need to then perform the aggregation of the count data
-my $aggregate_obj = Aggregate->new( $param_obj );
-my $ids_aref = $justify_obj->get_ordered_ids_aref(); # Gives ids in analysis
-#loop trough id's and perform the aggregation of the data
-foreach my $id ( @$ids_aref ) {
-    $aggregate_obj->aggregate($id);
-}
+#get wanted file names
+my $outfile = $full_da_table_file;
+$outfile =~ s/full/filtered/;
+$outfile =~ s/\.txt//;
+$outfile .= "_$$.txt";
 
-my $temp_yaml_file = $param_obj->get_temp_yaml_file();
-#need to get rid of single quotes
-my $temp_yaml_fo = file($temp_yaml_file);
-my @temp_yaml_lines = $temp_yaml_fo->slurp( chomp=>1 );
-my $temp_dir = tempdir();
-my ($tfh, $filename) = tempfile();
-foreach my $line (@temp_yaml_lines) {
-    if ( $line =~ qr/test:/ || $line =~ qr/ref_meta_cols:/ ) {
-        $line =~ s/'//g;
-    }
-    print $tfh $line, "\n";
-}
-close($tfh);
+#perform filter and log printing
+$da_filter_obj->filter_and_print($param_obj, $outfile);
 
-my $r_source_dir = $param_obj->get_Rsource_dir();
-
-my $cmd = "Rscript --no-save --no-restore edgeR_model.R params_file=\\\"$filename\\\" source_dir=\\\"$r_source_dir\\\"";
-
-system($cmd);
-
-#Make he necessary objects
-my $decouple_obj = DecoupleDa->new( $param_obj );
-my $da_table_obj = DaTable->new( { 'grp_order_aref' => $aggregate_obj->get_grp_order_aref(),
-                                   'id_order_aref' => $justify_obj->get_ordered_ids_aref(),} );
-
-#Decouple the edgeR data and then fill in a matrix
-foreach my $genome ( @{$justify_obj->get_ordered_ids_aref()} ) {
-    my $ids_w_da_counts_aref_aref = $decouple_obj->decouple($genome);
-    $da_table_obj->set_genome($genome, $ids_w_da_counts_aref_aref);
-}
-
-#get the outfile path
-my $out_path = $param_obj->get_out_dir();
-
-#Look to filter and print or print the full object
-my $da_filter_obj;
-$da_table_obj->print_full_da_table( "$out_path/full_da_tbl_$$.txt");
-$param_obj->print_yaml_file("$out_path/full_da_tbl_$$.log");
-
-eval{ $da_filter_obj = DaFilter->new( $da_table_obj );
-      $param_obj->check_filter_params() };
-if ( my $err = Exception::Class->caught() ) {
-    print "WARNING: See error below only if you intended to print a filtered DaTable\n$err\nThe full DA table will still be printed out. If you'd like to try and filter use the ____ program which can filter using just a full DA table file";
-}
-else{
-    $da_filter_obj->filter_and_print( $param_obj, "$out_path/filt_da_tbl_$$.txt");
-    $param_obj->print_yaml_file("$out_path/filt_da_tbl_$$.log");
-}
-
+#change outfile to log file
+$outfile =~ s/\.txt/\.log/;
+$param_obj->print_yaml_file( $outfile );
 
 __END__
 
-=head1 edgeR_driver
+=head1 filter_da_table
     
-This driver uses the Param_handler, Aggregate, and Justify object. This program will check all the passed parameters from a parameter file. It will then create
-an aggregated count file by grp. This file will be printed in the count directory in each id's directory. Two files will be created in the out directory passed in to the parameter file. The files will be an ordered id and metafile text file.
+This program reads in a DA File and will filter the file based on the specifications in the passed in yaml file. The params must be set as...
+filter_params:
+    f#:
+    - percentage
+    - true/false
+    f#:
+    - percentage
+    - true/false
+      
+You can filter multiple things at once. A log file will be created with the parametes associated with the filtered file and will be printed in the same directory as the filtered_da_table and the original da_table file. 
 
 =head1 VERSION
 
-This documentation refers to edgeR_driver 0.0.1
+This documentation refers to filter_da_table.pl 0.0.1
 
 =head1 INCLUDED MODULES
 
 use Param_handler;
-use Justify;
-use Aggregate;
 use DaFilter;
 use DaTable;
-use DecoupleDa;
 use Getopt::Long;
 use Pod::Usage;
 use Carp;
@@ -166,7 +121,7 @@ use YAML::XS qw(LoadFile);
     
 =head1 SYNOPSIS
 
-    perl edgeR_driver.pl -{y|x}
+    perl edgeR_driver.pl -{y|x} -da_file
     
     -yml_file | y =>    This is a yaml parameter file that contains all the     parameters needed for the analysis
     
@@ -174,44 +129,22 @@ use YAML::XS qw(LoadFile);
     
     ATTENTION: You must pass either a yaml or xml file.
     
+    -da_file      =>    This is the da file that will be filtered. It will be
+                        unaltered.
+    
 =head1 PARAMETERS
     
-    ref_meta_file       =>  File Path       ->  String
-    ref_include_file    =>  File Path       ->  String
-    ref_exclude_file    =>  File Path       ->  String  (Optional)
-    tree                =>  File Path       ->  String
-    out_dir             =>  Directory Path  ->  String 
-    annote_file_name    =>  File Name       ->  String
-    grp_genes_by        =>  Group Names     ->  String
-    gene_id_col         =>  Column Name     ->  String
-    count_dir           =>  Directory Path  ->  String
-    dafe_dir            =>  Directory Path  ->  String
-    genome_id_col       =>  Column Name     ->  String
-    metaG_meta_file     =>  File Path       ->  String
-    metaG_include_file  =>  File Path       ->  String
-    metaG_exclude_file  =>  File Path       ->  String  (Optional)
-    count_file_name     =>  File Name       ->  String
-    min_sample_count    =>  Sample Count    ->  Number
-    min_sample_cpm      =>  Counts per Million ->   Number
-    test                =>  Test Names      ->  String
-    test_col_name       =>  Column Name     ->  String
-    grp_meta_file       =>  File Path       ->  String
-    Rsource_dir         =>  Directory Path  ->  String
-    filter_params       =>  Hash Ref        ->  Array Ref( 0-100, True/False) ^(Optional)^
+    
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
-    Need to load R.
+    NA
 
 =head1 DEPENDENCIES
 
-    R -> Version 3.3.1
     Param_handler
-    Justify
-    Aggregate
     DaFilter
     DaTable
-    DecoupleDa
     
 =head1 INCOMPATIBILITIES
 
@@ -281,4 +214,3 @@ SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGES.
 
 =cut
-

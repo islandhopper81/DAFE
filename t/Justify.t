@@ -128,11 +128,11 @@ sub get_test_param_obj {
        count_file_name => "gene_counts_id60.txt", #this is the default value
        min_sample_count => 3, #Must be a positive integer
        min_sample_cpm => 0.03, #Must be positive and greater than 0
-       test_names => '["BK", "RZ"]', #defines the two sample groups to compare
+       test => '["BK", "RZ"]', #defines the two sample groups to compare
        test_col_name => "fraction", #where to look at the MetaG meta file to identify which group each experiment is from
        heat_filter => "FALSE", #Do the columns of the heatmap need to be filtered
        p3_height => 8, #Must be a number, but determines the plot height
-       heat_filter => "FALSE",
+       Rsource_dir => "/netscr/yourston/compMetaG_R_dev/R/",
     };
 
     my $param_obj = Param_handler->new( {href=>$xml_href} );

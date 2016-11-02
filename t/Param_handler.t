@@ -53,10 +53,10 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 	$params_thref = get_test_href();
 	$params_to = Param_handler->new({href => $params_thref});
 	is_deeply( $params_thref, $params_to->get_params_href(), "get_params_href()" );
-	$dummy_param = $params_to->get_test_names();
+	$dummy_param = $params_to->get_test();
 	$params_to = Param_handler->new({xml_file => get_test_file()});
 	is_deeply( $params_thref, $params_to->get_params_href(), "get_params_href() with xml_file" );
-	is($params_to->get_test_names(), $dummy_param, "test quoted variable test");
+	is($params_to->get_test(), $dummy_param, "test quoted variable test");
 }
 
 #test check_edger_params()
@@ -461,21 +461,21 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 	throws_ok( sub{ $params_to->_check_min_sample_cpm() }, 'MyX::Generic::Digit::TooSmall', "_check_min_sample_cpm() -- negative number" );
 }
 
-#_check_test_names
+#_check_test
 {
 	# Check if it works if correct param is passed
 	$params_to = Param_handler->new( {href => get_test_href} );
-	warnings_are { $params_to->_check_test_names() } [], "_check_test_names() -- no warnings";
+	warnings_are { $params_to->_check_test() } [], "_check_test() -- no warnings";
 
 	# Check if MyX::Generic::Undef::Param is thrown if param isn't passed
 	$params_to = Param_handler->new();
-	throws_ok( sub{ $params_to->_check_test_names() }, 'MyX::Generic::Undef::Param', "_check_test_names() -- check when file isn't passed" );
+	throws_ok( sub{ $params_to->_check_test() }, 'MyX::Generic::Undef::Param', "_check_test() -- check when file isn't passed" );
 
-	#check if wrong test_names are given
+	#check if wrong test are given
 	$params_thref = get_test_href();
-	$params_thref->{test_names} = "not_good";
+	$params_thref->{test} = "not_good";
 	$params_to = Param_handler->new( {href => $params_thref} );
-	throws_ok( sub{ $params_to->_check_test_names() }, 'MyX::Generic::BadValue', "_check_test_names() -- wrong names are passed" );	
+	throws_ok( sub{ $params_to->_check_test() }, 'MyX::Generic::BadValue', "_check_test() -- wrong names are passed" );	
 }
 
 #_check_test_col_name
@@ -735,12 +735,12 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 	is($params_to->get_min_sample_cpm(),$dummy_param,"get_min_sample_cpm()");
 }
 
-#get_test_names
+#get_test
 {
 	$dummy_param = "file";
-	$params_thref = { test_names => $dummy_param };
+	$params_thref = { test => $dummy_param };
 	$params_to = Param_handler->new({href => $params_thref});
-	is($params_to->get_test_names(),$dummy_param,"get_test_names()");
+	is($params_to->get_test(),$dummy_param,"get_test()");
 }
 
 #get_test_col_name
@@ -1041,19 +1041,19 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 	is($params_to->get_min_sample_cpm(),$old_value, "set_min_sample_cpm() -- bad parameter passed");
 }
 
-#set_test_names
+#set_test
 {
 	$params_thref = get_test_href();
-	my $old_value = $params_thref->{test_names};
-	$params_thref->{test_names} = "filler";
+	my $old_value = $params_thref->{test};
+	$params_thref->{test} = "filler";
 	$params_to = Param_handler->new( {href => $params_thref} );
-	$params_to->set_test_names($old_value);
-	is($params_to->get_test_names(),$old_value, "set_test_names() -- good param passed");
+	$params_to->set_test($old_value);
+	is($params_to->get_test(),$old_value, "set_test() -- good param passed");
 	
 	#if a bad value is given to the setter it will revert to the old value
 	$dummy_param = "bad_value";
-	$params_to->set_test_names($dummy_param);
-	is($params_to->get_test_names(),$old_value, "set_test_names() -- bad parameter passed");
+	$params_to->set_test($dummy_param);
+	is($params_to->get_test(),$old_value, "set_test() -- bad parameter passed");
 }
 
 #set_test_col_name
@@ -1188,7 +1188,7 @@ sub get_test_href {
        count_file_name => "gene_counts_id60.txt", #this is the default value
        min_sample_count => 3, #Must be a positive integer
        min_sample_cpm => 0.03, #Must be positive and greater than 0
-       test_names => '["BK", "RZ"]', #defines the two sample groups to compare
+       test => '["BK", "RZ"]', #defines the two sample groups to compare
        test_col_name => "fraction", #where to look at the MetaG meta file to identify which group each experiment is from
        heat_filter => "FALSE", #Do the columns of the heatmap need to be filtered
        p3_height => 8, #Must be a number, but determines the plot height
