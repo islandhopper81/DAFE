@@ -43,6 +43,9 @@ create_edgeR_params_obj = function(yaml_file, set_env=T) {
   
    # set the reference ids
   params$ref_include_ids = read_names(params$ref_include_file)
+  params$ref_exclude_ids = read_names(params$ref_exclude_file)
+  params$ref_include_ids = params$ref_include_ids[
+    !params$ref_include_ids %in% params$ref_exclude_ids]
 
   # set the metaG metadata obj ids
   params$metaG_metadata_tbl = create_metaG_metadata_tbl(
