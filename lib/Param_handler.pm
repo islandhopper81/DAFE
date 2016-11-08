@@ -13,7 +13,6 @@ use Data::Dumper;
 use XML::Simple qw(:strict);
 use Class::Std::Utils;
 use Scalar::Util::Numeric qw(isneg isint isfloat);
-use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
 use MyX::Generic;
 use YAML::XS qw(LoadFile DumpFile Dump);
 use File::Temp qw(tempfile tempdir);
@@ -50,7 +49,6 @@ grp_meta_file
 count_file_name
 Rsource_dir
 ref_meta_cols
-filter_params
 							     );
   
   Readonly::Hash my %REQUIRED_PRINT_TAGS => map { $_ => 1 } qw(
