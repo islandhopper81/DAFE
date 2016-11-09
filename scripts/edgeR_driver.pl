@@ -60,6 +60,7 @@ elsif (defined $yml_file) {
     #my $param_href = find_param_values_from_txt_file($yml_file);
     $param_obj = Param_handler->new( { yml_file => $yml_file } );
 }
+$param_obj->set_Rsource_dir( "../R_lib");
 $param_obj->check_edger_params();
 
 # Need to justify the tree, metadata file, count dir, and include file and print files

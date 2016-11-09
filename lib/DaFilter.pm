@@ -16,7 +16,6 @@ use Data::Dumper;
 use XML::Simple qw(:strict);
 use Class::Std::Utils;
 use Scalar::Util::Numeric qw(isneg isint isfloat);
-use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
 use MyX::Generic;
 
 {
