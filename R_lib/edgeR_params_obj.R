@@ -11,6 +11,8 @@ create_edgeR_params_obj = function(yaml_file, set_env=T) {
   params = list(working_root_dir = NULL,
                 ref_include_file = NULL,
                 ref_include_ids = NULL,
+                ref_exclude_file = NULL,
+                ref_exclude_ids = NULL,
                 metaG_meta_file = NULL,
                 metaG_include_file = NULL,
                 metaG_exclude_file = NULL,
@@ -31,6 +33,7 @@ create_edgeR_params_obj = function(yaml_file, set_env=T) {
   # save the params from the yaml input file
   params$working_root_dir = params_yaml$count_dir
   params$ref_include_file = params_yaml$ref_include_file
+  params$ref_exclude_file = params_yaml$ref_exclude_file
   params$metaG_meta_file = params_yaml$metaG_meta_file
   params$metaG_include_file = params_yaml$metaG_include_file
   params$metaG_exclude_file = params_yaml$metaG_exclude_file
@@ -122,7 +125,7 @@ read_names = function(file) {
       names = NA
     }
   }, error = function(err){
-    print(paste(err$message))
+    print(paste("ERROR: ", err$message))
     return(NA)
   })
   
