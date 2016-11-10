@@ -1192,7 +1192,7 @@ sub get_test_href {
        test_col_name => "fraction", #where to look at the MetaG meta file to identify which group each experiment is from
        heat_filter => "FALSE", #Do the columns of the heatmap need to be filtered
        p3_height => 8, #Must be a number, but determines the plot height
-	   Rsource_dir => "/netscr/yourston/compMetaG_R_dev/R/",
+	   Rsource_dir => "../R_lib",
 	   filter_params => { "f1" => [90, "false"],
 						"f-1" => [90,"false"], } 
     };
