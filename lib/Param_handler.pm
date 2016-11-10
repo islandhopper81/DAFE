@@ -350,8 +350,9 @@ heat_filter
 
     foreach my $tag ( keys %{$param_href} ) {
       if ( ! defined $REQUIRED_GLOBAL_TAGS{$tag} &&
-	   ! defined $REQUIRED_EDGER_TAGS{$tag}  &&
-	   ! defined $REQUIRED_PRINT_TAGS{$tag}    ) {
+					 ! defined $REQUIRED_EDGER_TAGS{$tag}  &&
+	         ! defined $REQUIRED_PRINT_TAGS{$tag}  &&
+		      $tag ne "filter_params" ) {
 	MyX::Generic::Undef::Attribute->throw(
 					      error => "Unknown attribute in the parameter hash",
 					      att_name => $tag,
