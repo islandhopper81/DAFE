@@ -1,4 +1,4 @@
-#! usr/bin/evn perl
+#! usr/bin/env perl
 
 package Justify;
 
