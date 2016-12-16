@@ -719,6 +719,7 @@ sub get_htseq_command {
         
         # generate the command
         {
+            $command .= "if [ `samtools view -c $bam_file` != 0 ]; then ";
             $command .= "htseq-count ";
             $command .= "-s no ";
             $command .= "-t CDS ";
@@ -728,6 +729,7 @@ sub get_htseq_command {
             $command .= "$bam_file ";
             $command .= "$gff_file ";
             $command .= "> $out_file; ";
+            $command .= "fi; ";
         }
     }
     
