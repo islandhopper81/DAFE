@@ -145,7 +145,7 @@ use MyX::Generic;
         my $param_obj = $self->get_param_object();
         my $grp_metafile_obj = file( $param_obj->get_grp_meta_file() );
         my @slurped_grp_meta = $grp_metafile_obj->slurp( chomp=>1, split=>qr/\t/ );
-        my $grp_genes_by = $param_obj->get_grp_genes_by() . "id"; #Assume the first column is the id column
+        my $grp_genes_by = $param_obj->get_grp_genes_by(); #Assume the first column is the id column
         my $grp_column = 0;
         my @ordered_grp;
         
