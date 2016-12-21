@@ -159,7 +159,7 @@ use MyX::Generic;
         
         #Create an array that will keep track of the grp order
         foreach my $line_aref ( @slurped_grp_meta ) {
-            if ( $line_aref->[$grp_column] =~ qr/$grp_genes_by/i ) {
+            if ( $line_aref->[$grp_column] !~ qr/$grp_genes_by/i ) {
                 next;
             }
             push @ordered_grp, $line_aref->[$grp_column];
