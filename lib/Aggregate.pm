@@ -150,8 +150,10 @@ use MyX::Generic;
         my @ordered_grp;
         
         #find the column number of the grp names
+	my $header_part;
         foreach my $part ( @{ $slurped_grp_meta[0] } ) {
-            if ( $part =~ qr/$grp_genes_by/i ) {
+	  if ( $part =~ qr/$grp_genes_by/i ) {
+	    $header_part = $part;
                 last;
             }
             $grp_column++;
@@ -159,7 +161,7 @@ use MyX::Generic;
         
         #Create an array that will keep track of the grp order
         foreach my $line_aref ( @slurped_grp_meta ) {
-            if ( $line_aref->[$grp_column] !~ qr/$grp_genes_by/i ) {
+            if ( $line_aref->[$grp_column] eq $header_part ) {
                 next;
             }
             push @ordered_grp, $line_aref->[$grp_column];
