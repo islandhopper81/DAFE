@@ -8,11 +8,11 @@ lib/DaTable.pm
 lib/DecoupleDa.pm
 lib/Justify.pm
 lib/Param_handler.pm
-R_lib/DA_test.R
+R_lib/DA_tests.R
 R_lib/build_tree_matrix_legends.R
 R_lib/edgeR_params_obj.R
 R_lib/genome_abundance_obj.R
-R_lib/get_normalization_number.R
+R_lib/get_normalization_numbers.R
 R_lib/metaG_metadata_obj.R
 R_lib/tree_matrix_obj.R
 R_lib/tree_matrix_plot_params.R
@@ -36,7 +36,7 @@ t/DaFilter.t
 t/DaTable.t
 t/DecoupleDa.t
 t/Justify.t
-t/Params_handler.t
+t/Param_handler.t
 t/pod-coverage.t
 t/pod.t
 t/test_dir/test_edgeR_driver.yaml
