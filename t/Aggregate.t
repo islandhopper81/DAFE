@@ -110,6 +110,7 @@ my $dummy_param;
 sub get_test_param_obj {
     #put all test data into the hash ref
     my $xml_href = {
+       Rsource_dir => "../R_lib",
        annote_file_name => "all_annote.txt", #Each genome should have one
        grp_genes_by => "kog", # Each annote file should have this column
        gene_id_col => "proteinId", #Check for a column that matches this name
@@ -146,6 +147,7 @@ sub get_test_param_obj {
 #The directory can be found /proj/cdjones_lab/ncolaian/tests/test_aggregate/
 sub get_fake_param_obj_with_testable_data {
     my $xml_href = {
+       Rsource_dir => "../R_lib",
        annote_file_name => "all_annote.txt", #Each genome should have one
        grp_genes_by => "kog", # Each annote file should have this column
        gene_id_col => "proteinId", #Check for a column that matches this name
