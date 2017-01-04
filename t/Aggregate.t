@@ -2,6 +2,7 @@ use strict;
 use warnings;
 
 use lib("../lib");
+use MyX::Generic;
 use Param_handler;
 use Aggregate;
 use XML::Simple;
