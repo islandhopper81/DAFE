@@ -2,3 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+Build
+MY*
+_build/
+blib/
