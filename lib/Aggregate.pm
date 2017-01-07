@@ -217,11 +217,11 @@ use MyX::Generic;
         
         #Determine the id column for both
         foreach my $part ( @{ $slurped_annote_file[0] } ) {
-            if ( $part =~ qr/$gene_id_col_name/i ) {
+            if ( $part =~ qr/^$gene_id_col_name$/i ) {
                 $gene_id_col = $col_num;
                 $col_num++;
             }
-            elsif ( $part =~ qr/$grp_genes_by/i ) {
+            elsif ( $part =~ qr/^$grp_genes_by$/i ) {
                 $grp_id_col = $col_num;
                 $col_num++;
             }
