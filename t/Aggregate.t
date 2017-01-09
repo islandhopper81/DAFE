@@ -139,7 +139,6 @@ sub get_test_param_obj {
        test => '["BK", "RZ"]', #defines the two sample groups to compare
        test_col_name => "fraction", #where to look at the MetaG meta file to identify which group each experiment is from
        heat_filter => "FALSE", #Do the columns of the heatmap need to be filtered
-       p3_height => 8, #Must be a number, but determines the plot height
        heat_filter => "FALSE",
     };
 
@@ -176,7 +175,6 @@ sub get_fake_param_obj_with_testable_data {
        test => '["BK", "RZ"]', #defines the two sample groups to compare
        test_col_name => "fraction", #where to look at the MetaG meta file to identify which group each experiment is from
        heat_filter => "FALSE", #Do the columns of the heatmap need to be filtered
-       p3_height => 8, #Must be a number, but determines the plot height
     };
 
     my $param_obj = Param_handler->new( {href=>$xml_href} );

@@ -52,7 +52,6 @@ ref_meta_cols
 							     );
   
   Readonly::Hash my %REQUIRED_PRINT_TAGS => map { $_ => 1 } qw(
-p3_height
 heat_filter
 							     );
 									 
@@ -103,7 +102,6 @@ heat_filter
   sub _check_test_info;
   sub _check_test_col_name;
   sub _check_big_mat;
-  sub _check_p3_height;
   sub _check_heat_filter;
 	sub _check_Rsource_dir;
 	
@@ -205,7 +203,6 @@ heat_filter
     #check print tags
     _are_print_tags_present($param_href);
     #Check print params
-    $self->_check_p3_height();
     $self->_check_ref_meta_cols();
 		$self->_check_heat_filter();
   }
@@ -275,7 +272,6 @@ heat_filter
 	sub get_print_params_href {
 		my ($self) = @_;
 		my $print_params_href = {
-			'p3_height'		     => $self->get_p3_height(),
 			'ref_meta_cols'    => $self->get_ref_meta_cols(),
 			'heat_filter'      => $self->get_heat_filter(),
 			'ref_meta_file'    => $self->get_ref_meta_file(),
@@ -935,17 +931,6 @@ heat_filter
 		return 1;
 	}
   #Print
-  sub _check_p3_height {
-    my ($self) = @_;
-    my $href  = $self->get_params_href();
-    if ( !$href->{p3_height} ) {
-      MyX::Generic::Undef::Param->throw(
-					error => "Param not set",
-					usage => "p3_height",
-					);
-    }
-    return 1;
-  }
   sub _check_ref_meta_cols {
     my ($self) = @_;
     my $param = $self->get_ref_meta_cols();
@@ -1238,17 +1223,6 @@ heat_filter
   }
   
   #Print
-  sub set_p3_height {
-    my ($self,$param) = @_;
-    my $params_href = $self->get_params_href();
-    my $old = $params_href->{p3_height};
-    $params_href->{p3_height} = $param;
-    eval {$self->_check_p3_height()};
-    if ( my $err = Exception::Class->caught() ) {
-       $params_href->{p3_height} = $old;
-     }
-    return 1;
-  }
   sub set_ref_meta_cols {
     my ($self,$param) = @_;
     my $params_href = $self->get_params_href();
@@ -1402,11 +1376,6 @@ heat_filter
   }
   
   #Print
-  sub get_p3_height {
-    my ($self) = @_;
-    my $params_href = $self->get_params_href();
-    return $params_href->{p3_height};
-  }
   sub get_ref_meta_cols {
     my ($self) = @_;
     my $params_href = $self->get_params_href();
@@ -1501,7 +1470,6 @@ use YAML::XS qw(LoadFile);
 		$test         			= $param_obj->get_test();
 		$test_col_name      = $param_obj->get_test_col_name();
 		$grp_meta_file      = $param_obj->get_grp_meta_file();
-		$p3_height          = $param_obj->get_p3_height();
 		$ref_meta_cols      = $param_obj->get_ref_meta_cols();
 		$heat_filter        = $param_obj->get_heat_filter();
 		
@@ -1528,7 +1496,6 @@ use YAML::XS qw(LoadFile);
 		$param_obj->set_test();
 		$param_obj->set_test_col_name();
 		$param_obj->set_grp_meta_file();
-		$param_obj->set_p3_height();
 		$param_obj->set_ref_meta_cols();
 		$param_obj->set_heat_filter();
 		
@@ -1540,7 +1507,7 @@ that need to be passed into the object include: A reference meta file, reference
 include and exclude file, a tree file, out directory, the annotation file names,
 what to group the genes by, the gene id column, the count directory, minimal
 sample count, the minimal sample counts per million, the names of the things to
-test, the test column names, the group metafile, the p3 height, refrence meta
+test, the test column names, the group metafile, refrence meta
 files, and heat filter.
 
 =head1 METHODS
@@ -1575,7 +1542,6 @@ files, and heat filter.
 	get_test();
 	get_test_col_name();
 	get_grp_meta_file();
-	get_p3_height();
 	get_ref_meta_cols();
 	get_heat_filter();
 	Setters ar the same but with set_ not get_
@@ -1704,7 +1670,7 @@ files, and heat filter.
 								count_dir, dafe_dir, genome_id_col, metaG_meta_file,
 								metaG_include_file, metaG_exclude_file, count_file_name,
 								min_sample_count, min_sample_cpm, test, test_col_name,
-								grp_meta_file, p3_height, ref_meta_cols, heat_filter }()
+								grp_meta_file, ref_meta_cols, heat_filter }()
 								
 	Title:		Individual Setters
 	Usage:		$param_obj->set_param_name( $param );
@@ -1721,7 +1687,7 @@ files, and heat filter.
 								count_dir, dafe_dir, genome_id_col, metaG_meta_file,
 								metaG_include_file, metaG_exclude_file, count_file_name,
 								min_sample_count, min_sample_cpm, test, test_col_name,
-								grp_meta_file, p3_height, ref_meta_cols, heat_filter }()
+								grp_meta_file, ref_meta_cols, heat_filter }()
 								
 	Title:		Individual Getters
 	Usage:		$param = $param_object->set_param_name();

@@ -21,7 +21,6 @@ metaG_meta_file: "../t/test_dir/full_test_dir/metagenome_metadata.txt"
 min_sample_count: "3"
 min_sample_cpm: "0.03"
 out_dir: "../t/test_dir/full_test_dir/test_R_stats"
-p3_height: "8"
 ref_exclude_file: "../t/test_dir/full_test_dir/empty_file.txt"
 ref_include_file: "../t/test_dir/full_test_dir/names.txt"
 ref_meta_cols: '["ID", "Strain", "Label"]'
