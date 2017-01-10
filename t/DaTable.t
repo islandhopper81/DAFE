@@ -62,7 +62,11 @@ my $abs_path = dirname(abs_path($0));
     warnings_are { $da_tbl_to->set_genome(10003, $dummy_param) } [{carped => '10003 is not in the ordered genome id passed'}], "try to add bad genome";
     warnings_are { $da_tbl_to->set_genome(10002, [ ['KOG09', 1] ]) } [{carped => "KOG09 is in the edger file but not in the grp metadata file" }], "try to add bad group";
     
-    lives_ok( sub{ $da_tbl_to->print_full_da_table("../t/test_dir/test_full_da_tbl.txt") }, "full print lives" );
+    #Test printer
+    my $tempdir = tempdir();
+	my ($fh, $filename) = tempfile();
+    lives_ok( sub{ $da_tbl_to->print_full_da_table($filename) }, "full print lives" );
+    close($fh);
     
     #test the passing of a da_table file
     lives_ok( sub{ $dummy_param = DaTable->new( {'da_file' => "$abs_path/../t/test_dir/test_full_da_tbl.txt",} ) }, "create DaTable with file");

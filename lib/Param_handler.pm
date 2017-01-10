@@ -1964,53 +1964,329 @@ files, and heat filter.
 
 =head2	set_Rsource_dir()
 
+	Title:		set_Rsource_dir
+	Usage:		$param_obj->set_Rsource_dir( $param );
+	Function:	Sets the R source directory in the param_handler object to the path given
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	String of the path to the directory containing the R code
+	Throws:		MyX::Generic::Param
+						MyX::Generic::DoesNotExist
+						MyX::Generic::BadValue
+	Comments:	NA
+	See Also:	NA
+	
 =head2	set_annote_file_name()
+
+	Title:		set_annote_file_name
+	Usage:		$param_obj->set_annote_file_name( $param );
+	Function:	Sets the annotation file name that is in each genome directory in the DAFE directory
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	String with the name of the annotation file
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::BadValue
+	Comments:	NA
+	See Also:	NA
 
 =head2	set_count_dir()
 
+	Title:		set_count_dir
+	Usage:		$param_obj->set_count_dir( $param );
+	Function:	Sets the directory containing the amount of times a gene was found in a metagenome sampel
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	String with the path to the count directory
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::DoesNotExist::Dir
+	Comments:	NA
+	See Also:	NA
+
 =head2	set_count_file_name()
+
+	Title:		set_count_file_name
+	Usage:		$param_obj->set_count_file_name( $param );
+	Function:	Sets the file name that will be looked for in each count directory to get the raw count data
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	String with the file name in each count directory
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::BadValue
+	Comments:	NA
+	See Also:	NA
 
 =head2	set_dafe_dir()
 
+	Title:		set_dafe_dir
+	Usage:		$param_obj->set_dafe_dir( $param );
+	Function:	Sets the path to the directory containing the genomes used in the analysis
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	String with the path to the genome directories
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::DoesNotExist::Dir
+	Comments:	NA
+	See Also:	NA
+
 =head2	set_filter_params()
+
+	Title:		set_filter_params
+	Usage:		$param_obj->set_filter_params( $param );
+	Function:	Sets the filter parameters
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	Hash Reference containing the filter parameters
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::Undef::Attribute
+						MyX::Generic::BadValue
+	Comments:	The filter parameters consist of hash_reference that has the number your filtering f[-3,-2,-1,0,1] as the key. The value should be an array reference containg both the percentage you want to filter at and true or false
+	See Also:	NA
 
 =head2	set_gene_id_col()
 
+	Title:		set_gene_id_col
+	Usage:		$param_obj->set_gene_id_col( $param );
+	Function:	Set the column name in the annotation file that has gene ids
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	String with column name
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::BadValue
+	Comments:	NA
+	See Also:	NA
+
 =head2	set_genome_id_col()
+
+	Title:		set_genome_id_col
+	Usage:		$param_obj->set_genome_id_col( $param );
+	Function:	Sets the column in the metafile that specifies genome ids
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	String with column name
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::BadValue
+	Comments:	NA
+	See Also:	NA
 
 =head2	set_grp_genes_by()
 
+	Title:		set_grp_genes_by
+	Usage:		$param_obj->set_grp_genes_by( $param );
+	Function:	Sets the column in the annotation file to the column used to group the genes
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	String of column name
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::BadValue
+	Comments:	NA
+	See Also:	NA
+
 =head2	set_grp_meta_file()
+
+	Title:		grp_meta_file
+	Usage:		$param_obj->set_grp_meta_file( $param );
+	Function:	Sets the path to the group i.e. cog,kog,etc. metafile
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	String representing a path
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::DoesNotExist::File
+	Comments:	NA
+	See Also:	NA
 
 =head2	set_heat_filter()
 
+	Title:		set_heat_filter
+	Usage:		$param_obj->set_heat_filter( $param );
+	Function:	Sets the heat filter used for heatmap creation
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	Scalar
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::BadValue
+	Comments:	NA
+	See Also:	NA
+
 =head2	set_metaG_exclude_file()
+
+	Title:		set_metaG_excluede_file
+	Usage:		$param_obj->set_metaG_exclude_file( $param );
+	Function:	Sets the path to the file containing the metagenome samples to exclude
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	String representing a path
+	Throws:		MyX::Generic::DoesNotExist::File
+						MyX::Generic::BadValue
+	Comments:	NA
+	See Also:	NA
 
 =head2	set_metaG_include_file()
 
+	Title:		set_metaG_include_file
+	Usage:		$param_obj->set_metaG_include_file( $param );
+	Function:	sets the path to a file containing the etagenome samples to include in analysis
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	String that represents a path
+	Throws:		MyX::Generic::DoesNotExist::File
+						MyX::Generic::BadValue
+	Comments:	NA
+	See Also:	NA
+
 =head2	set_metaG_meta_file()
+
+	Title:		set_metaG_meta_file
+	Usage:		$param_obj->set_metaG_meta_file( $param );
+	Function:	Sets the path to the metagenome metadatafile
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	String representing a path
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::DoesNotExist::File
+	Comments:	NA
+	See Also:	NA
 
 =head2	set_min_sample_count()
 
+	Title:		set_min_sample_count
+	Usage:		$param_obj->set_min_sample_count( $param );
+	Function:	Set the minimum sample count that must be present in a genome for analysis
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	Scalar
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::Digit
+	Comments:	NA
+	See Also:	NA
+
 =head2	set_min_sample_cpm()
+
+	Title:		set_min_sample_cpm
+	Usage:		$param_obj->set_min_sample_cpm( $param );
+	Function:	Sets the minimum counts needed in a metagenome sample to be considered
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	Scalar
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::Digit::TooSmall
+	Comments:	NA
+	See Also:	NA
 
 =head2	set_out_dir()
 
+	Title:		set_out_dir
+	Usage:		$param_obj->set_out_dir( $param );
+	Function:	Sets the path were you want all results to be stored
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	String representing a path
+	Throws:		MyX::Generic::Undef::Param
+	Comments:	NA
+	See Also:	NA
+
 =head2	set_ref_exclude_file()
+
+	Title:		set_ref_exclude_file
+	Usage:		$param_obj->set_ref_exclude_file( $param );
+	Function:	Sets the path to the file containing the genomes to exclude 
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	String representing a path
+	Throws:		MyX::Generic::DoesNotExist::File
+						MyX::Generic::BadValue
+						MyX::Generic::Undef::Param
+	Comments:	NA
+	See Also:	NA
 
 =head2	set_ref_include_file()
 
+	Title:		set_ref_include_file
+	Usage:		$param_obj->set_ref_include_file( $param );
+	Function:	sets the path to the file indicating the genomes to exclude
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	String representing a path
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::DoesNotExist
+						MyX::Generic::BadValue
+	Comments:	NA
+	See Also:	NA
+
 =head2	set_ref_meta_cols()
+
+	Title:		set_ref_meta_cols
+	Usage:		$param_obj->set_ref_meta_cls( $param );
+	Function:	Sets an array holding the names of the columns we are interested in the metadatafile 
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	Array countaining strings of column names
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::BadValue
+	Comments:	NA
+	See Also:	NA
 
 =head2	set_ref_meta_file()
 
-=head2	set_temp_yaml_file()
+	Title:		set_ref_meta_file
+	Usage:		$param_obj->set_ref_meta_file( $param );
+	Function:	Sets the path to the reference metadata file for the genomes
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	String representing a path
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::DoesNotExist::File
+	Comments:	NA
+	See Also:	NA
+
+=head2	get_temp_yaml_file()
+
+	Title:		get_temp_yaml_file
+	Usage:		$param_obj->get_temp_yaml_file();
+	Function:	Will produce a temporary yaml file with the paramaters stored in the Param_handler object
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+	Throws:		NA
+	Comments:	NA
+	See Also:	NA
 
 =head2	set_test()
 
+	Title:		set_test
+	Usage:		$param_obj->set_test( $param );
+	Function:	Sets an array that holds the strings that ou want to perform the statistics tests on
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	Array that contains strings
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::BadValue
+	Comments:	NA
+	See Also:	NA
+
 =head2	set_test_col_name()
 
+	Title:		set_test_col_name()
+	Usage:		$param_obj->set_test_col_name( $param );
+	Function:	Sets the column where the test values can be found in the metagenome metafile
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	String of a column name
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::BadValue
+	Comments:	NA
+	See Also:	NA
+
 =head2	set_tree()
+
+	Title:		set_tree
+	Usage:		$param_obj->set_tree( $param );
+	Function:	Sets the path to the newick file representing the tree of the genomes
+	Returns:	1
+	Args:			$param_obj	=>	Param_handler object
+						$param			=>	String representing a path
+	Throws:		MyX::Generic::Undef::Param
+						MyX::Generic::BadValue
+	Comments:	NA
+	See Also:	NA
 
 
 
