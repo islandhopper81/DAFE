@@ -1,13 +1,14 @@
 use strict;
 use warnings;
 
-use lib("../lib");
+use Cwd qw/ abs_path /;
+use File::Basename;
 use Param_handler;
 use XML::Simple;
 use File::Temp qw/ tempfile tempdir /;
 use Test::Exception;
 use Test::Warn;
-use Test::More tests => 176; # Need to place the number of tests you run here.
+use Test::More tests => 172; # Need to place the number of tests you run here.
 use Data::Dumper;
 
 
@@ -17,11 +18,12 @@ sub get_test_href; #Simple hashref to pass into tests
 sub get_test_file; #Simple file to pass into tests
 
 #Global variable to use in tests
+my $abs_path = dirname(abs_path($0));
 my $params_to;
 my $params_thref;
 my $dummy_param;
-my $empty_file = "../t/test_dir/full_test_dir/empty_file.txt";
-my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
+my $empty_file = "$abs_path/../t/test_dir/full_test_dir/empty_file.txt";
+my $yml_file = "$abs_path/../t/test_dir/test_edgeR_driver.yaml";
 
 ### TESTS ###
 
@@ -63,7 +65,6 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 {
 	#Need to test if it works without print params
 	$params_thref = get_test_href();
-	$params_thref->{p3_height} = "";
 	$params_thref->{heat_filter} = "";
 	$params_to = Param_handler->new( {href => $params_thref});
 	warnings_are { $params_to -> check_edger_params() } [], "just global and edger params";
@@ -72,13 +73,12 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 #test check_print_params()
 {
 	#Check the print parameters without the edger parameters
-	$params_thref->{p3_height} = 3;
 	$params_thref->{ref_meta_cols} = '["Fraction", "Source", "Label"]';
 	$params_thref->{heat_filter} = "FALSE";
-	$params_thref->{ref_include_file} = "../t/test_dir/full_test_dir/names.txt";
-	$params_thref->{ref_exclude_file} = "../t/test_dir/full_test_dir/empty_file.txt";
-	$params_thref->{tree} = "../t/test_dir/full_test_dir/Rooted_test_newick.nwk";
-	$params_thref->{out_dir} = "../t/test_dir/full_test_dir/test_R_stats";
+	$params_thref->{ref_include_file} = "$abs_path/../t/test_dir/full_test_dir/names.txt";
+	$params_thref->{ref_exclude_file} = "$abs_path/../t/test_dir/full_test_dir/empty_file.txt";
+	$params_thref->{tree} = "$abs_path/../t/test_dir/full_test_dir/Rooted_test_newick.nwk";
+	$params_thref->{out_dir} = "$abs_path/../t/test_dir/full_test_dir/test_R_stats";
 	
 	$params_to = Param_handler->new( {href => $params_thref});
 	warnings_are { $params_to -> check_print_params() } [], "just global and print params";
@@ -86,11 +86,11 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 
 #test _check_global_params()
 {
-	$params_thref->{ref_meta_file} = "../t/test_dir/full_test_dir/fungi_test.txt";
-	$params_thref->{ref_include_file} = "../t/test_dir/full_test_dir/names.txt";
-	$params_thref->{ref_exclude_file} = "../t/test_dir/full_test_dir/empty_file.txt";
-	$params_thref->{tree} = "../t/test_dir/full_test_dir/Rooted_test_newick.nwk";
-	$params_thref->{out_dir} = "../t/test_dir/full_test_dir/test_R_stats";
+	$params_thref->{ref_meta_file} = "$abs_path/../t/test_dir/full_test_dir/fungi_test.txt";
+	$params_thref->{ref_include_file} = "$abs_path/../t/test_dir/full_test_dir/names.txt";
+	$params_thref->{ref_exclude_file} = "$abs_path/../t/test_dir/full_test_dir/empty_file.txt";
+	$params_thref->{tree} = "$abs_path/../t/test_dir/full_test_dir/Rooted_test_newick.nwk";
+	$params_thref->{out_dir} = "$abs_path/../t/test_dir/full_test_dir/test_R_stats";
 	
 	$params_to = Param_handler->new( {href => $params_thref});
 	warnings_are { $params_to -> _check_global_params() } [], "just global params";
@@ -100,9 +100,9 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 #test spews (spew_xml_file() & spew_out())
 {
 	$params_to = Param_handler->new( {href => get_test_href()} );
-	$params_to->spew_xml_file("../t/test_dir/full_test_dir/test_R_stats/test.xml");
+	$params_to->spew_xml_file("$abs_path/../t/test_dir/full_test_dir/test_R_stats/test.xml");
 	$params_to->spew_out();
-	cmp_ok(-s "../t/test_dir/full_test_dir/test_R_stats/test.xml", '>', 0);
+	cmp_ok(-s "$abs_path/../t/test_dir/full_test_dir/test_R_stats/test.xml", '>', 0);
 }
 
 #test the creation of a temp yaml file
@@ -138,7 +138,7 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 	throws_ok( sub{ $params_to->_check_Rsource_dir }, 'MyX::Generic::DoesNotExist::Dir', "_check_Rsource_dir -- file doesn't exist" );
 
 	# Check to make sure if no R code is in the dir it will throw an error
-	$params_thref->{Rsource_dir} = "../t/test_dir/";
+	$params_thref->{Rsource_dir} = "$abs_path/../t/test_dir/";
 	$params_to = Param_handler->new( {href => $params_thref} );
 	throws_ok( sub{ $params_to->_check_Rsource_dir }, 'MyX::Generic::BadValue', "_check_Rsource_dir -- give directory w/ no R code" );
 }
@@ -185,7 +185,7 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 	
 	# Check to make sure the refs to include are in the metadata file
 	$params_thref = get_test_href();
-	$params_thref->{ref_include_file} = "../t/test_dir/full_test_dir/sample.names.txt";
+	$params_thref->{ref_include_file} = "$abs_path/../t/test_dir/full_test_dir/sample.names.txt";
 	$params_to = Param_handler->new( {href => $params_thref} );
 	throws_ok( sub{ $params_to->_check_ref_include_file }, 'MyX::Generic::BadValue', "_check_ref_include_file -- given wrong inclusion file" );
 }
@@ -201,7 +201,7 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 	throws_ok( sub{ $params_to->_check_ref_exclude_file }, 'MyX::Generic::DoesNotExist::File', "_check_ref_exclude_file -- file doesn't exist" );
 
 	# Check to make sure exclude values are in include file
-	$params_thref->{ref_exclude_file} = "../t/test_dir/full_test_dir/sample.names.txt";
+	$params_thref->{ref_exclude_file} = "$abs_path/../t/test_dir/full_test_dir/sample.names.txt";
 	$params_to = Param_handler->new( {href => $params_thref} );
 	throws_ok( sub{ $params_to->_check_ref_exclude_file }, 'MyX::Generic::BadValue', "_check_ref_exclude_file -- given wrong exclusion file" );
 }
@@ -384,7 +384,7 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 
 	#Check to see error is given when bad include file is given
 	$params_thref = get_test_href();
-	$params_thref->{metaG_include_file} = "../t/test_dir/test_bad/full_db_names.txt";
+	$params_thref->{metaG_include_file} = "$abs_path/../t/test_dir/test_bad/full_db_names.txt";
 	$params_to = Param_handler->new( {href => $params_thref} );
 	throws_ok( sub{ $params_to->_check_metaG_include_file() }, 'MyX::Generic::BadValue', "_check_metaG_include_file -- give bad inclusion file" );
 }
@@ -403,7 +403,7 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 
 	# Check to make sure the exclude info is in the include file
 	$params_thref = get_test_href();
-	$params_thref->{metaG_exclude_file} = "../t/test_dir/full_test_dir/kog_metadata.txt";
+	$params_thref->{metaG_exclude_file} = "$abs_path/../t/test_dir/full_test_dir/kog_metadata.txt";
 	$params_to = Param_handler->new( {href => $params_thref} );
 	throws_ok( sub{ $params_to->_check_metaG_exclude_file() }, 'MyX::Generic::BadValue', "_check_metaG_exclude_file() -- wrong exclude file" );
 }
@@ -514,17 +514,6 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 	$params_thref = { grp_meta_file => $empty_file };
 	$params_to = Param_handler->new( {href => $params_thref} );
 	throws_ok( sub{ $params_to->_check_grp_meta_file }, 'MyX::Generic::DoesNotExist::File', "_check_grp_meta_file -- given an empty file" );
-}
-
-#_check_p3_height
-{
-	# Check if it works if correct param is passed
-	$params_to = Param_handler->new( {href => get_test_href} );
-	warnings_are { $params_to->_check_p3_height() } [], "_check_p3_height -- no warnings";
-
-	# Check if MyX::Generic::Undef::Param is thrown if param isn't passed
-	$params_to = Param_handler->new();
-	throws_ok( sub{ $params_to->_check_p3_height }, 'MyX::Generic::Undef::Param', "_check_p3_height -- check when file isn't passed" );
 }
 
 #_check_ref_meta_cols
@@ -759,14 +748,6 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 	is($params_to->get_grp_meta_file(),$dummy_param,"get_grp_meta_file()");
 }
 
-#get_p3_height
-{
-	$dummy_param = "file";
-	$params_thref = { p3_height => $dummy_param };
-	$params_to = Param_handler->new({href => $params_thref});
-	is($params_to->get_p3_height(),$dummy_param,"get_p3_height()");
-}
-
 #get_ref_meta_cols
 {
 	$dummy_param = "file";
@@ -803,7 +784,7 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 {
 	#check to see that the set will work with a good value
 	$params_to = Param_handler->new();
-	$dummy_param = "../t/test_dir/full_test_dir/fungi_test.txt";
+	$dummy_param = "$abs_path/../t/test_dir/full_test_dir/fungi_test.txt";
 	$params_to->set_ref_meta_file($dummy_param);
 	is($params_to->get_ref_meta_file(),$dummy_param, "set_ref_meta_file() -- good param passed");
 
@@ -1086,16 +1067,6 @@ my $yml_file = "../t/test_dir/test_edgeR_driver.yaml";
 	is($params_to->get_grp_meta_file(),$old_value, "set_grp_meta_file() -- bad parameter passed");
 }
 
-#set_p3_height
-{
-	$params_thref = get_test_href();
-	my $old_value = $params_thref->{p3_height};
-	$params_thref->{p3_height} = "filler";
-	$params_to = Param_handler->new( {href => $params_thref} );
-	$params_to->set_p3_height($old_value);
-	is($params_to->get_p3_height(),$old_value, "set_p3_height() -- good param passed");
-}
-
 #set_ref_meta_cols
 {
 	$params_thref = get_test_href();
@@ -1170,29 +1141,28 @@ sub get_test_href {
        annote_file_name => "all_annote.txt", #Each genome should have one
        grp_genes_by => "kog", # Each annote file should have this column
        gene_id_col => "proteinId", #Check for a column that matches this name
-       count_dir => "../t/test_dir/full_test_dir/DAFE_cnt_results",
-       dafe_dir => "../t/test_dir/full_test_dir/JGI_fungal_db",
+       count_dir => "$abs_path/../t/test_dir/full_test_dir/DAFE_cnt_results",
+       dafe_dir => "$abs_path/../t/test_dir/full_test_dir/JGI_fungal_db",
        # ^The database directory^
-       out_dir => "../t/test_dir/full_test_dir/test_R_stats",
-       ref_meta_file => "../t/test_dir/full_test_dir/fungi_test.txt", #Need to make sure this annotation file exists
+       out_dir => "$abs_path/../t/test_dir/full_test_dir/test_R_stats",
+       ref_meta_file => "$abs_path/../t/test_dir/full_test_dir/fungi_test.txt", #Need to make sure this annotation file exists
        ref_meta_cols => '["Fraction", "Source", "Label"]', #Columns used in heatmap creation and each should be a column in the metadata file
-       ref_include_file => "../t/test_dir/full_test_dir/names.txt", #The ids of genomes that should be included
-       ref_exclude_file => "../t/test_dir/full_test_dir/empty_file.txt",
+       ref_include_file => "$abs_path/../t/test_dir/full_test_dir/names.txt", #The ids of genomes that should be included
+       ref_exclude_file => "$abs_path/../t/test_dir/full_test_dir/empty_file.txt",
        # ^The exclude file should be optional ^
        genome_id_col => "ID", 
-       metaG_meta_file => "../t/test_dir/full_test_dir/metagenome_metadata.txt",
-       metaG_include_file => "../t/test_dir/full_test_dir/sample.names.txt",
-       metaG_exclude_file => "../t/test_dir/full_test_dir/metaG_exclude.txt", #optional parameter
-       tree => "../t/test_dir/full_test_dir/Rooted_test_newick.nwk",
-       grp_meta_file => "../t/test_dir/full_test_dir/kog_metadata.txt", #file containing all the metadata for the features being used
+       metaG_meta_file => "$abs_path/../t/test_dir/full_test_dir/metagenome_metadata.txt",
+       metaG_include_file => "$abs_path/../t/test_dir/full_test_dir/sample.names.txt",
+       metaG_exclude_file => "$abs_path/../t/test_dir/full_test_dir/metaG_exclude.txt", #optional parameter
+       tree => "$abs_path/../t/test_dir/full_test_dir/Rooted_test_newick.nwk",
+       grp_meta_file => "$abs_path/../t/test_dir/full_test_dir/kog_metadata.txt", #file containing all the metadata for the features being used
        count_file_name => "gene_counts_id60.txt", #this is the default value
        min_sample_count => 3, #Must be a positive integer
        min_sample_cpm => 0.03, #Must be positive and greater than 0
        test => '["BK", "RZ"]', #defines the two sample groups to compare
        test_col_name => "fraction", #where to look at the MetaG meta file to identify which group each experiment is from
        heat_filter => "FALSE", #Do the columns of the heatmap need to be filtered
-       p3_height => 8, #Must be a number, but determines the plot height
-	   Rsource_dir => "/netscr/yourston/compMetaG_R_dev/R/",
+	   Rsource_dir => "$abs_path/../R_lib",
 	   filter_params => { "f1" => [90, "false"],
 						"f-1" => [90,"false"], } 
     };

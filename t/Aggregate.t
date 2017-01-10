@@ -1,7 +1,10 @@
 use strict;
 use warnings;
 
-use lib("../lib");
+#use lib("../lib");
+use Cwd qw/ abs_path /;
+use File::Basename;
+use MyX::Generic;
 use Param_handler;
 use Aggregate;
 use XML::Simple;
@@ -16,6 +19,7 @@ BEGIN { use_ok( 'Param_handler' );
 #Global Variables to be used in tests
 my $agg_to;
 my $dummy_param;
+my $abs_path = dirname(abs_path($0));
 
 ###########
 ## TESTS ##
@@ -110,31 +114,31 @@ my $dummy_param;
 sub get_test_param_obj {
     #put all test data into the hash ref
     my $xml_href = {
+       Rsource_dir => "$abs_path/../R_lib",
        annote_file_name => "all_annote.txt", #Each genome should have one
        grp_genes_by => "kog", # Each annote file should have this column
        gene_id_col => "proteinId", #Check for a column that matches this name
-       count_dir => "../t/test_dir/full_test_dir/DAFE_cnt_results",
-       dafe_dir => "../t/test_dir/full_test_dir/JGI_fungal_db",
+       count_dir => "$abs_path/../t/test_dir/full_test_dir/DAFE_cnt_results",
+       dafe_dir => "$abs_path/../t/test_dir/full_test_dir/JGI_fungal_db",
        # ^The database directory^
-       out_dir => "../t/test_dir/full_test_dir/test_R_stats",
-       ref_meta_file => "../t/test_dir/full_test_dir/fungi_test.txt", #Need to make sure this annotation file exists
+       out_dir => "$abs_path/../t/test_dir/full_test_dir/test_R_stats",
+       ref_meta_file => "$abs_path/../t/test_dir/full_test_dir/fungi_test.txt", #Need to make sure this annotation file exists
        ref_meta_cols => '["Fraction", "Source", "Label"]', #Columns used in heatmap creation and each should be a column in the metadata file
-       ref_include_file => "../t/test_dir/full_test_dir/names.txt", #The ids of genomes that should be included
-       ref_exclude_file => "../t/test_dir/full_test_dir/empty_file.txt",
+       ref_include_file => "$abs_path/../t/test_dir/full_test_dir/names.txt", #The ids of genomes that should be included
+       ref_exclude_file => "$abs_path/../t/test_dir/full_test_dir/empty_file.txt",
        # ^The exclude file should be optional ^
        genome_id_col => "ID", 
-       metaG_meta_file => "../t/test_dir/full_test_dir/metagenome_metadata.txt",
-       metaG_include_file => "../t/test_dir/full_test_dir/sample.names.txt",
-       metaG_exclude_file => "../t/test_dir/full_test_dir/metaG_exclude.txt", #optional parameter
-       tree => "../t/test_dir/full_test_dir/Rooted_test_newick.nwk",
-       grp_meta_file => "../t/test_dir/full_test_dir/kog_metadata.txt", #file containing all the metadata for the features being used
+       metaG_meta_file => "$abs_path/../t/test_dir/full_test_dir/metagenome_metadata.txt",
+       metaG_include_file => "$abs_path/../t/test_dir/full_test_dir/sample.names.txt",
+       metaG_exclude_file => "$abs_path/../t/test_dir/full_test_dir/metaG_exclude.txt", #optional parameter
+       tree => "$abs_path/../t/test_dir/full_test_dir/Rooted_test_newick.nwk",
+       grp_meta_file => "$abs_path/../t/test_dir/full_test_dir/kog_metadata.txt", #file containing all the metadata for the features being used
        count_file_name => "gene_counts_id60.txt", #this is the default value
        min_sample_count => 3, #Must be a positive integer
        min_sample_cpm => 0.03, #Must be positive and greater than 0
        test => '["BK", "RZ"]', #defines the two sample groups to compare
        test_col_name => "fraction", #where to look at the MetaG meta file to identify which group each experiment is from
        heat_filter => "FALSE", #Do the columns of the heatmap need to be filtered
-       p3_height => 8, #Must be a number, but determines the plot height
        heat_filter => "FALSE",
     };
 
@@ -146,32 +150,31 @@ sub get_test_param_obj {
 #The directory can be found /proj/cdjones_lab/ncolaian/tests/test_aggregate/
 sub get_fake_param_obj_with_testable_data {
     my $xml_href = {
+       Rsource_dir => "$abs_path/../R_lib",
        annote_file_name => "all_annote.txt", #Each genome should have one
        grp_genes_by => "kog", # Each annote file should have this column
        gene_id_col => "proteinId", #Check for a column that matches this name
-       count_dir => "../t/test_dir/test_aggregate/count_dir",
-       dafe_dir => "../t/test_dir/test_aggregate/dafe_dir",
+       count_dir => "$abs_path/../t/test_dir/test_aggregate/count_dir",
+       dafe_dir => "$abs_path/../t/test_dir/test_aggregate/dafe_dir",
        # ^The database directory^
-       out_dir => "../t/test_dir/full_test_dir/test_R_stats",
-       ref_meta_file => "../t/test_dir/full_test_dir/fungi_test.txt", #Need to make sure this annotation file exists
+       out_dir => "$abs_path/../t/test_dir/full_test_dir/test_R_stats",
+       ref_meta_file => "$abs_path/../t/test_dir/full_test_dir/fungi_test.txt", #Need to make sure this annotation file exists
        ref_meta_cols => '["Fraction", "Source", "Label"]', #Columns used in heatmap creation and each should be a column in the metadata file
-       ref_include_file => "../t/test_dir/test_aggregate/test_include_file.txt", #The ids of genomes that should be included
-       ref_exclude_file => "../t/test_dir/full_test_dir/empty_file.txt",
+       ref_include_file => "$abs_path/../t/test_dir/test_aggregate/test_include_file.txt", #The ids of genomes that should be included
+       ref_exclude_file => "$abs_path/../t/test_dir/full_test_dir/empty_file.txt",
        # ^The exclude file should be optional ^
        genome_id_col => "ID", 
-       metaG_meta_file => "../t/test_dir/full_test_dir/metagenome_metadata.txt",
-       metaG_include_file => "../t/test_dir/full_test_dir/sample.names.txt",
-       metaG_exclude_file => "../t/test_dir/full_test_dir/metaG_exclude.txt", #optional parameter
-       tree => "../t/test_dir/full_test_dir/Rooted_test_newick.nwk",
-       grp_meta_file => "../t/test_dir/test_aggregate/fake_kog_metadata.txt", #file containing all the metadata for the features being used
+       metaG_meta_file => "$abs_path/../t/test_dir/full_test_dir/metagenome_metadata.txt",
+       metaG_include_file => "$abs_path/../t/test_dir/full_test_dir/sample.names.txt",
+       metaG_exclude_file => "$abs_path/../t/test_dir/full_test_dir/metaG_exclude.txt", #optional parameter
+       tree => "$abs_path/../t/test_dir/full_test_dir/Rooted_test_newick.nwk",
+       grp_meta_file => "$abs_path/../t/test_dir/test_aggregate/fake_kog_metadata.txt", #file containing all the metadata for the features being used
        count_file_name => "gene_counts_id60.txt", #this is the default value
        min_sample_count => 3, #Must be a positive integer
        min_sample_cpm => 0.03, #Must be positive and greater than 0
        test => '["BK", "RZ"]', #defines the two sample groups to compare
        test_col_name => "fraction", #where to look at the MetaG meta file to identify which group each experiment is from
        heat_filter => "FALSE", #Do the columns of the heatmap need to be filtered
-       p3_height => 8, #Must be a number, but determines the plot height
-       Rsource_dir => "/netscr/yourston/compMetaG_R_dev/R/",
     };
 
     my $param_obj = Param_handler->new( {href=>$xml_href} );

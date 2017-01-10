@@ -721,6 +721,28 @@ as a reference or to find mistakes.
     Comments:   NA  
     See Also:   NA
     
+=head2 get_ordered_ids_aref()
+
+    Title:      get_ordered_ids_aref
+    Usage:      $justify_obj->get_ordered_ids_aref();
+    Function:   Returns an arra reference containing the genome ids in the analysis ordered by the tree
+    Returns:    Array Reference
+    Args:       $justify_obj    =>  A Justify object
+    Throws:     NA
+    Comments:   NA
+    See Also:   NA
+    
+=head2 get_trimmed_ordered_meta_aref()
+
+    Title:      get_trimmed_ordered_meta_aref
+    Usage:      $justify_obj->get_trimmed_ordered_meta_aref();
+    Function:   Returns an array reference of the ordered metadatafile with the genomes excluded out of the file
+    Returns:    Array Reference
+    Args:       $justify_obj    =>  A Justify object
+    Throws:     NA
+    Comments:   NA
+    See Also:   NA
+    
 =head1 CONFIGURATION AND ENVIRONMENT
 
     Justify requires no configuration files or environment variables.

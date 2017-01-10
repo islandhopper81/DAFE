@@ -34,16 +34,15 @@ GetOptions ('man'  => \$man,
             'da_file=s'    => \$full_da_table_file,
             ) || die("There was an error in the command line arguements\n");
 
+# Use Pod usage for the Manual and Help pages
+if ( $help ) { pod2usage(0) }
+if ( $man )  {pod2usage(-verbose => 3) }
+
 #kill program if neither a xml or txt file is passed
 if (!defined $xml_file && !defined $yml_file) {
     croak("Must pass in a text file with newline characters, or an xml file.
           Do this by specifying the file with either -xml_file or -txt_file");
 }
-
-
-# Use Pod usage for the Manual and Help pages
-if ( $help ) { pod2usage(0) }
-if ( $man )  {pod2usage(-verbose => 3) }
 
 # Subroutines that will occur in the main program
 

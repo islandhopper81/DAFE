@@ -255,7 +255,6 @@ use MyX::Generic;
         return $da_matrix{ident $self};
     }
     
-    #Need to add the two href getters to documetation
     sub get_id_order_count_href {
         my ($self) = @_;
         return $id_order_count_href{ident $self};
@@ -419,8 +418,7 @@ sub _set_grp_da_value;
     Title:      new
     Usage:      $da_table_obj = DaTable->new( { grp_order_aref => $grp_order_aref
                                                 id_order_aref => $id_order_aref});
-    Function:   This creates a new da table object that holds a matrix that are
-                the dimensions of the scalars of the id_array x grp_array
+    Function:   This creates a new da table object that holds a matrix      that are the dimensions of the scalars of the id_array x grp_array
     Returns:    DaTable
     Args:       HashRef containing grp_order_aref and id_order_aref
                 grp_order_aref  =>  This is an array ref containing all the grps
@@ -432,8 +430,7 @@ sub _set_grp_da_value;
                 
     Comments:   The ordered arefs can, and probably should, come from Justify
                 and Aggregate objects. 
-    See Also:   Justify and Aggregate objects. Look at DecoupleDa program to check
-                 the output structure that is being read by this program.
+    See Also:   Justify and Aggregate objects. Look at DecoupleDa program to check the output structure that is being read by this program.
                  
 =head2  get_genome()
     
@@ -486,7 +483,73 @@ sub _set_grp_da_value;
     Throws:     MyX::Generic::BadValue
     Comments:   NA
     See Also:   DecoupleDa
+    
+=head2  check_for_unset_values()
 
+    Title:      check_for_unset_values
+    Usage:      $da_table_obj->check_for_unset_values()
+    Function:   This will check the matrix in a DaTable object for any unset values
+    Returns:    1
+    Args:       $da_table_obj   => A DaTable object
+    Throws:     MyX::Generic::Undef::Attribute => Containing the matching group and genome pairs that have missing values
+    Comments:   NA
+    See Also:   NA
+    
+=head2  get_grp_order_aref()
+
+    Title:      get_grp_order_aref
+    Usage:      $da_table_obj->get_grp_order_aref();
+    Function:   Returns an array with the grp order that the matrix is created from
+    Returns:    Array Reference
+    Args:       $da_table_obj   =>  DaTable object
+    Throws:     NA 
+    Comments:   NA
+    See Also:   NA
+    
+=head2  get_id_order_aref()
+
+    Title:      get_id_order_aref
+    Usage:      $da_table_obj->get_id_order_aref();
+    Function:   Returns an array containing ids in the order used to create the matrix within the DaTable object.
+    Returns:    Array Reference
+    Args:       $da_table_obj   => DaTable object
+    Throws:     NA
+    Comments:   NA
+    See Also:   NA
+    
+=head2  get_grp_order_count_href()
+
+    Title:      get_grp_order_count_href
+    Usage:      $da_table_obj->get_grp_order_count_href();
+    Function:   Returns a hash reference that has the group as the keys and the order in the matrix as the value
+    Returns:    Hash Reference
+    Args:       $da_table_obj   =>  DaTable Object
+    Throws:     NA
+    Comments:   NA
+    See Also:   NA
+    
+=head2  get_id_order_count_href()
+
+    Title:      get_id_order_count_href
+    Usage:      $da_table_obj->get_id_order_count_href();
+    Function:   Returns a hash reference containing the genome id as the keys and its order in the matrix as the value
+    Returns:    Hash Reference
+    Args:       $da_table_obj   => DaTable object
+    Throws:     NA
+    Comments:   These are good for position look-ups
+    See Also:   NA
+    
+=head2  print_full_da_table()
+
+    Title:      print_full_da_table
+    Usage:      $da_table_obj->print_full_da_table( $outfile );
+    Function:   Prints the count matrix contained within the DaTable object
+    Returns:    A txt file located in the area passed into the function
+    Args:       $da_table_obj   => DaTable object
+                $outfile        => The path to write the text file containing the count matrix
+    Throws:     NA
+    Comments:   NA
+    See Also:   NA
 
 =head1 Configuration And Environment
 

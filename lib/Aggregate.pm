@@ -145,13 +145,15 @@ use MyX::Generic;
         my $param_obj = $self->get_param_object();
         my $grp_metafile_obj = file( $param_obj->get_grp_meta_file() );
         my @slurped_grp_meta = $grp_metafile_obj->slurp( chomp=>1, split=>qr/\t/ );
-        my $grp_genes_by = $param_obj->get_grp_genes_by() . "id"; #Assume the first column is the id column
+        my $grp_genes_by = $param_obj->get_grp_genes_by(); #Assume the first column is the id column
         my $grp_column = 0;
         my @ordered_grp;
         
         #find the column number of the grp names
+	my $header_part;
         foreach my $part ( @{ $slurped_grp_meta[0] } ) {
-            if ( $part =~ qr/$grp_genes_by/i ) {
+	  if ( $part =~ qr/$grp_genes_by/i ) {
+	    $header_part = $part;
                 last;
             }
             $grp_column++;
@@ -159,7 +161,7 @@ use MyX::Generic;
         
         #Create an array that will keep track of the grp order
         foreach my $line_aref ( @slurped_grp_meta ) {
-            if ( $line_aref->[$grp_column] =~ qr/$grp_genes_by/i ) {
+            if ( $line_aref->[$grp_column] eq $header_part ) {
                 next;
             }
             push @ordered_grp, $line_aref->[$grp_column];
@@ -215,11 +217,11 @@ use MyX::Generic;
         
         #Determine the id column for both
         foreach my $part ( @{ $slurped_annote_file[0] } ) {
-            if ( $part =~ qr/$gene_id_col_name/i ) {
+            if ( $part =~ qr/^$gene_id_col_name$/i ) {
                 $gene_id_col = $col_num;
                 $col_num++;
             }
-            elsif ( $part =~ qr/$grp_genes_by/i ) {
+            elsif ( $part =~ qr/^$grp_genes_by$/i ) {
                 $grp_id_col = $col_num;
                 $col_num++;
             }

@@ -393,18 +393,51 @@ This object holds the differentially abundant counts and DaTable. You can use th
     
 =head1  Methods Description
 
-=head2 new ()
+=head2 new()
     
-    Title:
-    Usage:
-    Function:
-    Returns:
-    Args:
-    Throws:
-    Comments:
-    See Also:
+    Title:      new
+    Usage:      DaFilter->new( $da_table_obj )
+    Function:   Creates a new DaFilter object
+    Returns:    DaFilter object
+    Args:       $da_table_obj   => This is a DaTable object that has a matrix of count data contained within it.
+    Throws:     NA
+    Comments:   Make sure that the DaTable object passed in has the matrix filled correctly
+    See Also:   DaTable.pm
     
-=head 2
+=head2 get_grp_count_aref()
+    
+    Title:      get_grp_count_aref
+    Usage:      $filter_obj->get_grp_count_aref()
+    Function:   Returns an array ref containing hashes with the counts of each groups differential abundance counts
+    Returns:    Array reference containing hash references
+    Args:       $filter_obj => a DaFilter object
+    Throws:     NA
+    Comments:   NA
+    See Also:   NA
+    
+=head2 get_table_obj()
+
+    Title:      get_table_obj
+    Usage:      $filter_obj->get_table_obj()
+    Function:   returns the Da_Table object that was passed
+    Returns:    DaTable object
+    Args:       $filter_obj => a DaFilter object
+    Throws:     NA
+    Comments:   NA
+    See Also:   DaTable
+    
+=head2 filter_and_print()
+
+    Title:      filter_and_print
+    Usage:      $filter_obj->( $param_handler, $outfile );
+    Function:   Checks the ParamHandler object for the filter params and determines what to filter and how. If "false" is passed everything below the filter will be kept. Vice versa for "true". It will then print the resulting matrix to the location passed
+    Returns:    1
+    Args:       $filter_obj => DaFilter object
+                $param_handler  => This is a Param_Handler object containing the filter parameters within it.
+                $outfile    => the location where you want resulting filtered count matrix to be printed to. Will be a txt file
+    Throws:     Prints out numbers that were not filtered.
+    Comments:   This will produce a text file at the location passed. It will contain the filtered count data originally from the matrix passed or the Da_Table object passed.
+    See Also:   NA
 
 
 =head1  Configuration And Environment

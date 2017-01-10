@@ -7,6 +7,7 @@ my $builder = Module::Build->new(
     license             => 'artistic2',
     dist_author         => 'Scott Yourstone and Nick Colaianni <scott.yourstone81@gmail.com>',
     dist_version   => '0.0.1',
+	dist_abstract => "Module for Differentially Abundant Functional Elements analysis",
     requires => {
         'Test::More' => 0,
         'version'    => 0,
