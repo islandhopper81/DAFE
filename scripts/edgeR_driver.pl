@@ -69,7 +69,7 @@ elsif (defined $yml_file) {
     #my $param_href = find_param_values_from_txt_file($yml_file);
     $param_obj = Param_handler->new( { yml_file => $yml_file } );
 }
-$param_obj->set_Rsource_dir( "../R_lib");
+#$param_obj->set_Rsource_dir( "../R_lib");
 $logger->info( "Checking the edgeR parameters" );
 $param_obj->check_edger_params();
 
@@ -93,6 +93,7 @@ my $aggregate_obj = Aggregate->new( $param_obj );
 my $ids_aref = $justify_obj->get_ordered_ids_aref(); # Gives ids in analysis
 #loop trough id's and perform the aggregation of the data
 foreach my $id ( @$ids_aref ) {
+    $logger->info( "Aggregation of $id" );
     $aggregate_obj->aggregate($id);
 }
 
