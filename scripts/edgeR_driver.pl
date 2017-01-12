@@ -1,4 +1,4 @@
-#! usr/bin/env perl
+#! usr/bin/evn perl
 
 use strict;
 use warnings;
@@ -69,7 +69,7 @@ elsif (defined $yml_file) {
     #my $param_href = find_param_values_from_txt_file($yml_file);
     $param_obj = Param_handler->new( { yml_file => $yml_file } );
 }
-$param_obj->set_Rsource_dir( "../R_lib");
+#$param_obj->set_Rsource_dir( "../R_lib");
 $logger->info( "Checking the edgeR parameters" );
 $param_obj->check_edger_params();
 
