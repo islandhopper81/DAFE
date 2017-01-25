@@ -2,7 +2,6 @@
 
 use strict;
 use warnings;
-use lib "../lib";
 use Param_handler;
 use Justify;
 use Aggregate;
@@ -24,6 +23,9 @@ use YAML::XS qw(LoadFile);
 use File::Temp qw(tempfile tempdir);
 use Cwd qw(abs_path);
 use File::Basename;
+use Log::Log4perl qw(:easy);
+use Log::Log4perl::CommandLine qw(:all);
+
 
 # My Variables
 my $help = 0;
@@ -49,6 +51,9 @@ if (!defined $xml_file && !defined $yml_file) {
           Do this by specifying the file with either -xml_file or -txt_file");
 }
 
+# Set up Logger
+my $logger = get_logger();
+
 # Subroutines that will occur in the main program
 
 # MAIN #
@@ -56,13 +61,18 @@ if (!defined $xml_file && !defined $yml_file) {
 my $param_obj;
 #Create a Param_handler object and check the edgeR Params. Put this in the param hendler
 if (defined $xml_file) {
+    $logger->info( "Creating a Param object with an xml file" );
+    $logger->debug( $xml_file );
     $param_obj = Param_handler->new( { xml_file => $xml_file } );
 }
 elsif (defined $yml_file) {
+    $logger->info( "Creating a Param object with an yaml file" );
+    $logger->debug( $yml_file );
     #my $param_href = find_param_values_from_txt_file($yml_file);
     $param_obj = Param_handler->new( { yml_file => $yml_file } );
 }
-$param_obj->set_Rsource_dir( "../R_lib");
+#$param_obj->set_Rsource_dir( "../R_lib");
+$logger->info( "Checking the edgeR parameters" );
 $param_obj->check_edger_params();
 
 # Need to justify the tree, metadata file, count dir, and include file and print files
@@ -70,18 +80,28 @@ my $justify_obj = Justify->new( $param_obj );
 $out_dir = $param_obj->get_out_dir();
 my $ids_out = $out_dir . "/ordered_ids.txt";
 my $meta_out = $out_dir . "/ordered_metafile.txt";
+
+$logger->info( "Creation of an ordered metadata file" );
+$logger->debug( $meta_out );
 $justify_obj->spew_trimmed_ordered_meta_file( $meta_out );
+
+$logger->info( "Creation of an ordered id file using the tree" );
+$logger->debug( $ids_out );
 $justify_obj->spew_ordered_ids( $ids_out );
 
 # Need to then perform the aggregation of the count data
+$logger->info( "Creation of an aggregate object, and aggregation of all the count data" );
 my $aggregate_obj = Aggregate->new( $param_obj );
 my $ids_aref = $justify_obj->get_ordered_ids_aref(); # Gives ids in analysis
 #loop trough id's and perform the aggregation of the data
 foreach my $id ( @$ids_aref ) {
+    $logger->info( "Aggregation of $id" );
     $aggregate_obj->aggregate($id);
 }
 
+$logger->info( "Getting rid of the single quotes in the temp yaml passed to edgeR" );
 my $temp_yaml_file = $param_obj->get_temp_yaml_file();
+$logger->debug( $temp_yaml_file );
 #need to get rid of single quotes
 my $temp_yaml_fo = file($temp_yaml_file);
 my @temp_yaml_lines = $temp_yaml_fo->slurp( chomp=>1 );
@@ -95,21 +115,26 @@ foreach my $line (@temp_yaml_lines) {
 }
 close($tfh);
 
+#Run edgeR
+$logger->info( "Running edgeR" );
 my $r_source_dir = $param_obj->get_Rsource_dir();
 
-# get the edgeR_model path which is the same as the current script
+# get the edgeR_model.R path which is the same as the current script
 my $path = dirname(abs_path($0));
 
 my $cmd = "Rscript --no-save --no-restore $path/edgeR_model.R params_file=\\\"$filename\\\" source_dir=\\\"$r_source_dir\\\"";
 
+$logger->debug( $cmd );
 system($cmd);
 
-#Make he necessary objects
+#Make the necessary objects
+$logger->info( "Creation of a Decouple and a Da_Table object" );
 my $decouple_obj = DecoupleDa->new( $param_obj );
 my $da_table_obj = DaTable->new( { 'grp_order_aref' => $aggregate_obj->get_grp_order_aref(),
                                    'id_order_aref' => $justify_obj->get_ordered_ids_aref(),} );
 
 #Decouple the edgeR data and then fill in a matrix
+$logger->info( "Filling in the count matrix in Da_Table");
 foreach my $genome ( @{$justify_obj->get_ordered_ids_aref()} ) {
     my $ids_w_da_counts_aref_aref = $decouple_obj->decouple($genome);
     $da_table_obj->set_genome($genome, $ids_w_da_counts_aref_aref);
@@ -119,6 +144,7 @@ foreach my $genome ( @{$justify_obj->get_ordered_ids_aref()} ) {
 my $out_path = $param_obj->get_out_dir();
 
 #Look to filter and print or print the full object
+$logger->info( "Looking for filter params" );
 my $da_filter_obj;
 $da_table_obj->print_full_da_table( "$out_path/full_da_tbl_$$.txt");
 $param_obj->print_yaml_file("$out_path/full_da_tbl_$$.log");
@@ -129,6 +155,7 @@ if ( my $err = Exception::Class->caught() ) {
     print "WARNING: See error below only if you intended to print a filtered DaTable\n$err\nThe full DA table will still be printed out. If you'd like to try and filter use the ____ program which can filter using just a full DA table file";
 }
 else{
+    $logger->info( "Filtering the Da_Table" );
     $da_filter_obj->filter_and_print( $param_obj, "$out_path/filt_da_tbl_$$.txt");
     $param_obj->print_yaml_file("$out_path/filt_da_tbl_$$.log");
 }
@@ -167,6 +194,8 @@ use MyX::Generic;
 use YAML::XS qw(LoadFile);
 use Cwd qw(abs_path)
 use File::Basename
+use Log::Log4perl qw(:easy);                                                                                                               
+use Log::Log4perl::CommandLine qw(:all);
 
 =head1 INHERIT
 

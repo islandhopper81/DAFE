@@ -8,7 +8,7 @@ use XML::Simple;
 use File::Temp qw/ tempfile tempdir /;
 use Test::Exception;
 use Test::Warn;
-use Test::More tests => 176; # Need to place the number of tests you run here.
+use Test::More tests => 172; # Need to place the number of tests you run here.
 use Data::Dumper;
 
 
@@ -65,7 +65,6 @@ my $yml_file = "$abs_path/../t/test_dir/test_edgeR_driver.yaml";
 {
 	#Need to test if it works without print params
 	$params_thref = get_test_href();
-	$params_thref->{p3_height} = "";
 	$params_thref->{heat_filter} = "";
 	$params_to = Param_handler->new( {href => $params_thref});
 	warnings_are { $params_to -> check_edger_params() } [], "just global and edger params";
@@ -74,7 +73,6 @@ my $yml_file = "$abs_path/../t/test_dir/test_edgeR_driver.yaml";
 #test check_print_params()
 {
 	#Check the print parameters without the edger parameters
-	$params_thref->{p3_height} = 3;
 	$params_thref->{ref_meta_cols} = '["Fraction", "Source", "Label"]';
 	$params_thref->{heat_filter} = "FALSE";
 	$params_thref->{ref_include_file} = "$abs_path/../t/test_dir/full_test_dir/names.txt";
@@ -518,17 +516,6 @@ my $yml_file = "$abs_path/../t/test_dir/test_edgeR_driver.yaml";
 	throws_ok( sub{ $params_to->_check_grp_meta_file }, 'MyX::Generic::DoesNotExist::File', "_check_grp_meta_file -- given an empty file" );
 }
 
-#_check_p3_height
-{
-	# Check if it works if correct param is passed
-	$params_to = Param_handler->new( {href => get_test_href} );
-	warnings_are { $params_to->_check_p3_height() } [], "_check_p3_height -- no warnings";
-
-	# Check if MyX::Generic::Undef::Param is thrown if param isn't passed
-	$params_to = Param_handler->new();
-	throws_ok( sub{ $params_to->_check_p3_height }, 'MyX::Generic::Undef::Param', "_check_p3_height -- check when file isn't passed" );
-}
-
 #_check_ref_meta_cols
 {
 	# Check if it works if correct param is passed
@@ -759,14 +746,6 @@ my $yml_file = "$abs_path/../t/test_dir/test_edgeR_driver.yaml";
 	$params_thref = { grp_meta_file => $dummy_param };
 	$params_to = Param_handler->new({href => $params_thref});
 	is($params_to->get_grp_meta_file(),$dummy_param,"get_grp_meta_file()");
-}
-
-#get_p3_height
-{
-	$dummy_param = "file";
-	$params_thref = { p3_height => $dummy_param };
-	$params_to = Param_handler->new({href => $params_thref});
-	is($params_to->get_p3_height(),$dummy_param,"get_p3_height()");
 }
 
 #get_ref_meta_cols
@@ -1088,16 +1067,6 @@ my $yml_file = "$abs_path/../t/test_dir/test_edgeR_driver.yaml";
 	is($params_to->get_grp_meta_file(),$old_value, "set_grp_meta_file() -- bad parameter passed");
 }
 
-#set_p3_height
-{
-	$params_thref = get_test_href();
-	my $old_value = $params_thref->{p3_height};
-	$params_thref->{p3_height} = "filler";
-	$params_to = Param_handler->new( {href => $params_thref} );
-	$params_to->set_p3_height($old_value);
-	is($params_to->get_p3_height(),$old_value, "set_p3_height() -- good param passed");
-}
-
 #set_ref_meta_cols
 {
 	$params_thref = get_test_href();
@@ -1193,7 +1162,6 @@ sub get_test_href {
        test => '["BK", "RZ"]', #defines the two sample groups to compare
        test_col_name => "fraction", #where to look at the MetaG meta file to identify which group each experiment is from
        heat_filter => "FALSE", #Do the columns of the heatmap need to be filtered
-       p3_height => 8, #Must be a number, but determines the plot height
 	   Rsource_dir => "$abs_path/../R_lib",
 	   filter_params => { "f1" => [90, "false"],
 						"f-1" => [90,"false"], } 

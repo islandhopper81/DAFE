@@ -272,6 +272,18 @@ sub get_count_file_name;
     Comments:   The name will have the same extension from the data returned from
                 the edger analysis.
     See Also:   NA
+    
+=head2 manually_set_cnt_file_name_from_edger()
+
+    Title:      manually_set_cnt_file_name_from_edger
+    Usage:      $decouple_obj->manually_set_cnt_file_name_from_edger( $name );
+    Function:   Sets the file to look for in the count directory. If it is different than the standard output from edgeR
+    Returns:    1
+    Args:       $decouple_obj   =>  A DecoupleDa object
+                $name           =>  String representing the file name from edgeR
+    Throws:     NA
+    Comments:   NA
+    See Also:   NA
 
 
 =head1 Configuration And Environment

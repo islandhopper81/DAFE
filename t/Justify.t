@@ -133,7 +133,6 @@ sub get_test_param_obj {
        test => '["BK", "RZ"]', #defines the two sample groups to compare
        test_col_name => "fraction", #where to look at the MetaG meta file to identify which group each experiment is from
        heat_filter => "FALSE", #Do the columns of the heatmap need to be filtered
-       p3_height => 8, #Must be a number, but determines the plot height
        Rsource_dir => "$abs_path/../R_lib/",
     };
 
