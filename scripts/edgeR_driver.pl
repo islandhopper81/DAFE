@@ -22,6 +22,8 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
 use MyX::Generic;
 use YAML::XS qw(LoadFile);
 use File::Temp qw(tempfile tempdir);
+use Cwd qw(abs_path);
+use File::Basename;
 
 # My Variables
 my $help = 0;
@@ -95,7 +97,10 @@ close($tfh);
 
 my $r_source_dir = $param_obj->get_Rsource_dir();
 
-my $cmd = "Rscript --no-save --no-restore edgeR_model.R params_file=\\\"$filename\\\" source_dir=\\\"$r_source_dir\\\"";
+# get the edgeR_model path which is the same as the current script
+my $path = dirname(abs_path($0));
+
+my $cmd = "Rscript --no-save --no-restore $path/edgeR_model.R params_file=\\\"$filename\\\" source_dir=\\\"$r_source_dir\\\"";
 
 system($cmd);
 
@@ -160,6 +165,8 @@ use Scalar::Util::Numeric qw(isneg isint isfloat);
 use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
 use MyX::Generic;
 use YAML::XS qw(LoadFile);
+use Cwd qw(abs_path)
+use File::Basename
 
 =head1 INHERIT
 
