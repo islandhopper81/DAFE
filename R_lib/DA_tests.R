@@ -192,7 +192,7 @@ get_count_tbl = function(count_file, params_obj) {
   file = paste(params_obj$agg_count_file_prefix, ".txt", sep="")
     
   # read in the data
-  tbl = read.table(file, header=T, row.names=1, sep="\t", check.names=F)
+  tbl = read.table(file, header=T, row.names=1, sep="\t", check.names=F, na.strings = "")
   
   # keep only the columns in that correspond to the metaG_include IDs
   tbl = tbl[,row.names(params_obj$metaG_metadata_tbl)]
