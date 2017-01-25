@@ -29,12 +29,14 @@ opt = getopt(params)
 main = function() {
   # read in the tips to remove
   to_remove = read.table(file = opt$remove, header=F)
+	to_remove$V1 = as.character(to_remove$V1)
+	print(to_remove)
   
   # read in the tree
   tree = read.tree(opt$tree)
   
   # remove the nodes
-  new_tree = drop.tip(tree, to_remove)
+  new_tree = drop.tip(tree, to_remove$V1)
   
   # output the new tree
   write.tree(new_tree, file = opt$out)
