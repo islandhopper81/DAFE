@@ -1,7 +1,6 @@
 use strict;
 use warnings;
 
-#use lib("../lib");
 use Cwd qw/ abs_path /;
 use File::Basename;
 use MyX::Generic;
@@ -138,8 +137,6 @@ sub get_test_param_obj {
        min_sample_cpm => 0.03, #Must be positive and greater than 0
        test => '["BK", "RZ"]', #defines the two sample groups to compare
        test_col_name => "fraction", #where to look at the MetaG meta file to identify which group each experiment is from
-       heat_filter => "FALSE", #Do the columns of the heatmap need to be filtered
-       heat_filter => "FALSE",
     };
 
     my $param_obj = Param_handler->new( {href=>$xml_href} );
@@ -174,7 +171,6 @@ sub get_fake_param_obj_with_testable_data {
        min_sample_cpm => 0.03, #Must be positive and greater than 0
        test => '["BK", "RZ"]', #defines the two sample groups to compare
        test_col_name => "fraction", #where to look at the MetaG meta file to identify which group each experiment is from
-       heat_filter => "FALSE", #Do the columns of the heatmap need to be filtered
     };
 
     my $param_obj = Param_handler->new( {href=>$xml_href} );

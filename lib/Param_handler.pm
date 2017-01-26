@@ -52,7 +52,7 @@ ref_meta_cols
 							     );
   
   Readonly::Hash my %REQUIRED_PRINT_TAGS => map { $_ => 1 } qw(
-heat_filter
+ref_meta_cols
 							     );
 									 
 	Readonly::Hash my %FILTER_PARAMS => map { $_ => 1 } qw(
@@ -102,7 +102,6 @@ heat_filter
   sub _check_test_info;
   sub _check_test_col_name;
   sub _check_big_mat;
-  sub _check_heat_filter;
 	sub _check_Rsource_dir;
 	
 
@@ -202,7 +201,6 @@ heat_filter
     _are_print_tags_present($param_href);
     #Check print params
     $self->_check_ref_meta_cols();
-		$self->_check_heat_filter();
   }
   
   sub _check_global_params {
@@ -271,7 +269,6 @@ heat_filter
 		my ($self) = @_;
 		my $print_params_href = {
 			'ref_meta_cols'    => $self->get_ref_meta_cols(),
-			'heat_filter'      => $self->get_heat_filter(),
 			'ref_meta_file'    => $self->get_ref_meta_file(),
 			'ref_include_file' => $self->getref_include_file(),
 			'ref_exclude_file' => $self->get_ref_exclude_file(),
@@ -963,37 +960,6 @@ heat_filter
     return 1;
   }
 
-	sub _check_heat_filter {
-		my ($self) = @_;
-		my $param = $self->get_heat_filter();
-		my $href  = $self->get_params_href();
-		if ( !$href->{heat_filter} ) {
-			MyX::Generic::Undef::Param->throw(
-					error => "Param not set",
-					usage => "heat_filter",
-					);
-		}
-		else {
-			if ($param =~ /[a-z]/i) {
-				if ($param =~ qr/t/i || $param =~ qr/true/i) {
-					$param = "TRUE";
-					$href->{heat_filter} = $param;
-				}
-				elsif ($param =~ qr/f/i || $param =~ qr/false/i) {
-					$param = "FALSE";
-					$href->{heat_filter} = $param;
-				}
-			}
-		}
-    if ($param ne "TRUE" && $param ne "FALSE") {
-			MyX::Generic::BadValue->throw(
-				      error => "Need to pass a boolean value for heat_filter",
-				      value => $param,
-				     );
-    }
-		return 1;
-  }
-
   #SETTERS#
   #Global
   sub set_ref_meta_file {
@@ -1231,17 +1197,6 @@ heat_filter
     }
     return 1;
   }
-  sub set_heat_filter {
-    my ($self,$param) = @_;
-    my $params_href = $self->get_params_href();
-    my $old = $params_href->{heat_filter};
-    $params_href->{heat_filter} = $param;
-    eval {$self->_check_heat_filter()};
-    if ( my $err = Exception::Class->caught() ) {
-      $params_href->{heat_filter} = $old;
-    }
-    return 1;
-  }
 	
 	sub set_Rsource_dir {
 		my ($self,$param) = @_;
@@ -1378,11 +1333,6 @@ heat_filter
     my $params_href = $self->get_params_href();
     return $params_href->{ref_meta_cols};
   }
-  sub get_heat_filter {
-    my ($self) = @_;
-    my $params_href = $self->get_params_href();
-    return $params_href->{heat_filter};
-  }
 	sub get_Rsource_dir {
 		my ($self) = @_;
 		my $params_href = $self->get_params_href();
@@ -1468,7 +1418,6 @@ use YAML::XS qw(LoadFile);
 		$test_col_name      = $param_obj->get_test_col_name();
 		$grp_meta_file      = $param_obj->get_grp_meta_file();
 		$ref_meta_cols      = $param_obj->get_ref_meta_cols();
-		$heat_filter        = $param_obj->get_heat_filter();
 		
 	=head2 Setters
 	
@@ -1494,7 +1443,6 @@ use YAML::XS qw(LoadFile);
 		$param_obj->set_test_col_name();
 		$param_obj->set_grp_meta_file();
 		$param_obj->set_ref_meta_cols();
-		$param_obj->set_heat_filter();
 		
 =head1  DESCRIPTION
 
@@ -1540,7 +1488,6 @@ files, and heat filter.
 	get_test_col_name();
 	get_grp_meta_file();
 	get_ref_meta_cols();
-	get_heat_filter();
 	Setters ar the same but with set_ not get_
 
 =head1 METHODS DESCRIPTION
@@ -1779,17 +1726,6 @@ files, and heat filter.
 	Title:		get_grp_meta_file
 	Usage:		$param_obj->get_grp_meta_file();
 	Function:	Returns the path to the group metadata file
-	Returns:	String
-	Args:			$param_obj	=>	Param_handler object
-	Throws:		NA	
-	Comments:	NA
-	See Also:	NA
-
-=head2	get_heat_filter()
-
-	Title:		get_heat_filter
-	Usage:		$param_obj->get_heat_filter();
-	Function:	Returns the information to be passed to the heatmap creation
 	Returns:	String
 	Args:			$param_obj	=>	Param_handler object
 	Throws:		NA	
@@ -2091,19 +2027,6 @@ files, and heat filter.
 						$param			=>	String representing a path
 	Throws:		MyX::Generic::Undef::Param
 						MyX::Generic::DoesNotExist::File
-	Comments:	NA
-	See Also:	NA
-
-=head2	set_heat_filter()
-
-	Title:		set_heat_filter
-	Usage:		$param_obj->set_heat_filter( $param );
-	Function:	Sets the heat filter used for heatmap creation
-	Returns:	1
-	Args:			$param_obj	=>	Param_handler object
-						$param			=>	Scalar
-	Throws:		MyX::Generic::Undef::Param
-						MyX::Generic::BadValue
 	Comments:	NA
 	See Also:	NA
 
