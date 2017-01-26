@@ -21,6 +21,8 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
 use MyX::Generic;
 use YAML::XS qw(LoadFile);
 use File::Temp qw(tempfile tempdir);
+use Cwd qw(abs_path);
+use File::Basename;
 use Log::Log4perl qw(:easy);
 use Log::Log4perl::CommandLine qw(:all);
 
@@ -117,7 +119,10 @@ close($tfh);
 $logger->info( "Running edgeR" );
 my $r_source_dir = $param_obj->get_Rsource_dir();
 
-my $cmd = "Rscript --no-save --no-restore edgeR_model.R params_file=\\\"$filename\\\" source_dir=\\\"$r_source_dir\\\"";
+# get the edgeR_model.R path which is the same as the current script
+my $path = dirname(abs_path($0));
+
+my $cmd = "Rscript --no-save --no-restore $path/edgeR_model.R params_file=\\\"$filename\\\" source_dir=\\\"$r_source_dir\\\"";
 
 $logger->debug( $cmd );
 system($cmd);
@@ -187,6 +192,10 @@ use Scalar::Util::Numeric qw(isneg isint isfloat);
 use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
 use MyX::Generic;
 use YAML::XS qw(LoadFile);
+use Cwd qw(abs_path)
+use File::Basename
+use Log::Log4perl qw(:easy);                                                                                                               
+use Log::Log4perl::CommandLine qw(:all);
 
 =head1 INHERIT
 
