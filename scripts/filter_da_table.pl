@@ -34,15 +34,16 @@ GetOptions ('man'  => \$man,
             'da_file=s'    => \$full_da_table_file,
             ) || die("There was an error in the command line arguements\n");
 
-# Use Pod usage for the Manual and Help pages
-if ( $help ) { pod2usage(0) }
-if ( $man )  {pod2usage(-verbose => 3) }
-
 #kill program if neither a xml or txt file is passed
 if (!defined $xml_file && !defined $yml_file) {
     croak("Must pass in a text file with newline characters, or an xml file.
           Do this by specifying the file with either -xml_file or -txt_file");
 }
+
+
+# Use Pod usage for the Manual and Help pages
+if ( $help ) { pod2usage(0) }
+if ( $man )  {pod2usage(-verbose => 3) }
 
 # Subroutines that will occur in the main program
 
@@ -126,14 +127,50 @@ use YAML::XS qw(LoadFile);
     
     -xml_file | x =>    This is a xml parameter file that contains all the parameters needed for the analysis
     
-    ATTENTION: You must pass either a yaml or xml file.
+    ATTENTION: You must pass either a yaml or xml file. Add filter paramaters to yaml or xml file passed to create the da_file
     
     -da_file      =>    This is the da file that will be filtered. It will be
                         unaltered.
     
 =head1 PARAMETERS
     
+    The parameters within the xml and yml file:
     
+    ref_meta_file       =>  File Path       ->  String
+    ref_include_file    =>  File Path       ->  String
+    ref_exclude_file    =>  File Path       ->  String  (Optional)
+    tree                =>  File Path       ->  String
+    out_dir             =>  Directory Path  ->  String 
+    annote_file_name    =>  File Name       ->  String
+    grp_genes_by        =>  Group Names     ->  String
+    gene_id_col         =>  Column Name     ->  String
+    count_dir           =>  Directory Path  ->  String
+    dafe_dir            =>  Directory Path  ->  String
+    genome_id_col       =>  Column Name     ->  String
+    metaG_meta_file     =>  File Path       ->  String
+    metaG_include_file  =>  File Path       ->  String
+    metaG_exclude_file  =>  File Path       ->  String  (Optional)
+    count_file_name     =>  File Name       ->  String
+    min_sample_count    =>  Sample Count    ->  Number
+    min_sample_cpm      =>  Counts per Million ->   Number
+    test                =>  Test Names      ->  String
+    test_col_name       =>  Column Name     ->  String
+    grp_meta_file       =>  File Path       ->  String
+    Rsource_dir         =>  Directory Path  ->  String
+    filter_params       =>  Hash Ref        ->  Array Ref( 0-100, True/False) ^(Optional)^
+    filter params example:
+    filter_params:
+        f1:
+        -   90
+        -   'false/true'
+        f-1:
+        -   10
+        -   'false/true'
+        
+    That will filter both abundance values of 1 and -1 in an and fashion.
+    The first param under the abundance value to filter is the percentage. True means it will keep everything above the filter percentage, and false means all the data with a percentage of abundance values less than that will be kept
+    
+    -da_file => this a txt file that represents a differential abundance matrix
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
