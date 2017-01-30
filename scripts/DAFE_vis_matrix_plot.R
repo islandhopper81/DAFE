@@ -1,3 +1,9 @@
+# This script creates a DAFE heatmap
+
+# There are two parameters
+# 1. The matrix of DA values (rows are functions, cols are genomes)
+# 2. The png output file name
+
 
 library(gplots)
 library(reshape2)
@@ -10,7 +16,11 @@ library(R.utils)
 library(getopt)
 library(cluster) # for daisy funciton for clustering COGs
 
-### Parameter variables
+
+##############
+# Parameters #
+##############
+
 # The params matrix
 # Each row is a parameter with 4 columns: 
 #   1) long value, 
@@ -23,30 +33,13 @@ params = matrix(c(
   "out_file", "o", 1, "character"
 ), byrow=TRUE, ncol=4)
 opt = getopt(params)
-
 matrix_file = opt$matrix_file
 out_file = opt$out_file
 
 
-
-#matrix_file = "/Users/Scott/temp/fungal/full_da_tbl_25554.txt"
-#matrix_file = "/Users/Scott/Projects/CompMetaG/experiments/nature_paper_44_metaG/60_perc_id_mapping/full_da_tbl_6508.txt"
-#matrix_file = "/Users/Scott/Projects/CompMetaG/experiments/nature_paper_44_metaG/60_perc_id_mapping/filtered/combined_up_and_down.txt"
-
-# bacterial 60 perc mapping
-#matrix_file = "/Users/Scott/Projects/CompMetaG/experiments/nature_paper_44_metaG/bacterial/60_perc_id_mapping/full_da_tbl_22859.txt"
-
-# read in the file as a data frame
-tbl = read.table(matrix_file, sep="\t")
-
-
-# change it to a matirx (so I can get the names right)
-mat = as.matrix(tbl[2:nrow(tbl), 2:ncol(tbl)])
-rownames(mat) = tbl[2:nrow(tbl),1]
-colnames(mat) = tbl[1,2:ncol(tbl)]
-
-# transpose it (rows are genomes, cols are functional groups)
-mat = t(mat)
+#############
+# Functions #
+#############
 
 # convert it back to a dataframe
 get_grp_df = function(grp_mat=NULL, names=NULL) {
@@ -168,9 +161,20 @@ make_figure = function(mat, file) {
   dev.off()
 }
 
-#make_figure(mat, "/Users/Scott/temp/fungal/DA_tbl.png")
-#make_figure(mat, "/Users/Scott/Projects/CompMetaG/experiments/nature_paper_44_metaG/60_perc_id_mapping/DA_tbl.png")
-#make_figure(mat, "/Users/Scott/Projects/CompMetaG/experiments/nature_paper_44_metaG/60_perc_id_mapping/filtered/DA_tbl.png")
+########
+# MAIN #
+########
+
+# read in the file as a data frame
+tbl = read.table(matrix_file, sep="\t")
+
+# change it to a matirx (so I can get the names right)
+mat = as.matrix(tbl[2:nrow(tbl), 2:ncol(tbl)])
+rownames(mat) = tbl[2:nrow(tbl),1]
+colnames(mat) = tbl[1,2:ncol(tbl)]
+
+# transpose it (so that rows are genomes, cols are functional groups)
+mat = t(mat)
 make_figure(mat, out_file)
 
 
