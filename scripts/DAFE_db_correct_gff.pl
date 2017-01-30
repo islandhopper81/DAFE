@@ -20,9 +20,10 @@ my $usage = "$0 <input gff> <htseq_i>\n";
 my $input_gff = shift or die $usage;
 my $htseq_i = shift;
 
+# get the genome ID from the gff file name
 my @genome = split /\//, $input_gff;
-my $genome_name = $genome[scalar(@genome)-1];
-$genome_name =~ s/.gff//;
+my $genome_id = $genome[scalar(@genome)-1];
+$genome_id =~ s/.gff//;
 
 # set defaults if neccessary
 if ( ! defined $htseq_i ) { $htseq_i = "ID"; }
@@ -101,14 +102,14 @@ foreach my $line ( <$IN> ) {
 		$vals[0] = "#" . $vals[0];
 	}
 	
-	# Change the names of the genes in the gff file to include the genome name
+	# Change the names of the genes in the gff file to include the genome id
 	if ( $line !~ m/^#/ ) {
 		my @split_id_line = split /;/, $vals[(scalar(@vals)-1)];
 		foreach my $part ( @split_id_line ) {
-			if ( $part =~ m/ID/ ) {
+			if ( $part =~ m/$htseq_i/ ) {
 				my @id_split = split /=/, $part;
 				my $id = $id_split[1];
-				$vals[(scalar(@vals)-1)] =~ s/$id/$genome_name-$id/;
+				$vals[(scalar(@vals)-1)] =~ s/$id/$genome_id-$id/;
 				last;
 			}
 		}
