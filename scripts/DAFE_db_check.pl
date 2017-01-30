@@ -13,13 +13,19 @@ use version; our $VERSION = qv('0.0.2');
 use Log::Log4perl qw(:easy);
 use Log::Log4perl::CommandLine qw(:all);
 use FindBin qw($Bin);
+use BioUtils::FastaIO;
+use File::Temp qw(tempfile);
 
 # Subroutines #
 sub check_dir_exists;
 sub check_required_files;
 sub check_genome_fasta;
+sub correct_genome_fasta;
 sub check_gene_faa;
+sub correct_gene_faa;
 sub check_gene_fna;
+sub correct_gene_fna;
+sub correct_fasta_IDs;
 sub check_gff;
 sub check_for_bad_lines;
 sub check_annote;
@@ -178,8 +184,24 @@ sub check_gene_faa {
         $logger->warn("$id -- Zero size gene faa");
 		return 0;
     }
+	
+	# check that the gene ID has the pattern: genomeID-geneID
+	my $faa_in = BioUtils::FastaIO->new({stream_type => '<', file => $file});
+	my $first_seq = $faa_in->get_next_seq();
+	my $seq_id = $first_seq->get_id();
+	if ( $first_seq->get_id() !~ m/$id-\S+/ ) {
+		correct_gene_faa($id, $file, $faa_in, $first_seq);
+	}
     
     return($file);
+}
+
+sub correct_gene_faa {
+	my ($id, $file, $faa_in, $first_seq) = @_;
+	
+	# add logger statment here
+	
+	correct_fasta_IDs($id, $file, $faa_in, $first_seq);
 }
 
 sub check_gene_fna {
@@ -194,8 +216,55 @@ sub check_gene_fna {
         $logger->warn("$id -- Zero size gene fna");
 		return 0;
     }
+	
+	# check that the gene ID has the pattern: genomeID-geneID
+	my $fna_in = BioUtils::FastaIO->new({stream_type => '<', file => $file});
+	my $first_seq = $fna_in->get_next_seq();
+	my $seq_id = $first_seq->get_id();
+	if ( $first_seq->get_id() !~ m/$id-\S+/ ) {
+		correct_gene_fna($id, $file, $fna_in, $first_seq);
+	}
     
     return($file);
+}
+
+sub correct_gene_fna {
+	my ($id, $file, $faa_in, $first_seq) = @_;
+	
+	# add a logger statement
+	
+	correct_fasta_IDs($id, $file, $faa_in, $first_seq);
+}
+
+sub correct_fasta_IDs {
+	my ($id, $file, $faa_in, $first_seq) = @_;
+	
+	# correct the fasta IDs by adding the genomeID to the beginning of the
+	# geneID in the header
+	
+	# make a temp file to put the correct seqs
+	my ($tmp_fh, $tmp_file) = tempfile();
+	close($tmp_fh);
+	
+	# make a BioUtilsIO object that point to the tmep file
+	my $faa_out = BioUtils::FastaIO->new({stream_type => '>',
+										  file => $tmp_file});
+	
+	# update and add the first sequence
+	# here I assume that the first value in the header is the gene ID
+	my $header = $first_seq->get_header();
+	$first_seq->set_header("$id-$header");
+	$faa_out->write_seq($first_seq);
+	
+	# update the remaining sequence in the file
+	while ( my $seq = $faa_in->get_next_seq() ) {
+		$header = $seq->get_header();
+		$seq->set_header("$id-$header");
+		$faa_out->write_seq($seq);
+	}
+	
+	# replace the original file with the tmp file
+	`mv $tmp_file $file`;
 }
 
 sub check_gff {
@@ -867,6 +936,8 @@ version
 Log::Log4perl qw(:easy)
 Log::Log4perl::CommandLine qw(:all)
 FindBin qw($Bin)
+BioUtils::FastaIO
+File::Temp qw(tempfile)
 
 
 =head1 AUTHOR
