@@ -242,6 +242,11 @@ sub check_gff {
 		if ( $vals[8] =~ m/name / ) { 
 			correct_gff($file);
 		}
+        
+        # look for genome name in the gene id's
+        if ( $vals[scalar(@vals) - 1] !~ qr/$id/ ) {
+            correct_gff($file);
+        }
 		
 		last;
 	}

@@ -241,6 +241,9 @@ sub add_to_tbl {
 		
 		# get the gene_id value which MUST be in the first column
         my $gene_id = shift @vals;
+        if ($type ne "gff_annote") {
+            $gene_id = $genome_id . "-$gene_id";
+        }
 		#my $annote_id = shift @vals;	
 		
         $tbl_href->{$gene_id}{$type} = join("\t", @vals);

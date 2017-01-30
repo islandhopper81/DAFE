@@ -20,6 +20,10 @@ my $usage = "$0 <input gff> <htseq_i>\n";
 my $input_gff = shift or die $usage;
 my $htseq_i = shift;
 
+my @genome = split /\//, $input_gff;
+my $genome_name = $genome[scalar(@genome)-1];
+$genome_name =~ s/.gff//;
+
 # set defaults if neccessary
 if ( ! defined $htseq_i ) { $htseq_i = "ID"; }
 
@@ -95,6 +99,19 @@ foreach my $line ( <$IN> ) {
 	# I'm not sure what those even are
 	if ( $line !~ m/^#/ and $vals[2] eq "inverted" ) {
 		$vals[0] = "#" . $vals[0];
+	}
+	
+	# Change the names of the genes in the gff file to include the genome name
+	if ( $line !~ m/^#/ ) {
+		my @split_id_line = split /;/, $vals[(scalar(@vals)-1)];
+		foreach my $part ( @split_id_line ) {
+			if ( $part =~ m/ID/ ) {
+				my @id_split = split /=/, $part;
+				my $id = $id_split[1];
+				$vals[(scalar(@vals)-1)] =~ s/$id/$genome_name-$id/;
+				last;
+			}
+		}
 	}
 	
 	# check if the attribute values contain the htseq_i tag
