@@ -21,8 +21,6 @@ use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
 use MyX::Generic;
 use YAML::XS qw(LoadFile);
 use File::Temp qw(tempfile tempdir);
-use Cwd qw(abs_path);
-use File::Basename;
 use Log::Log4perl qw(:easy);
 use Log::Log4perl::CommandLine qw(:all);
 
@@ -119,10 +117,7 @@ close($tfh);
 $logger->info( "Running edgeR" );
 my $r_source_dir = $param_obj->get_Rsource_dir();
 
-# get the edgeR_model.R path which is the same as the current script
-my $path = dirname(abs_path($0));
-
-my $cmd = "Rscript --no-save --no-restore $path/edgeR_model.R params_file=\\\"$filename\\\" source_dir=\\\"$r_source_dir\\\"";
+my $cmd = "Rscript --no-save --no-restore edgeR_model.R params_file=\\\"$filename\\\" source_dir=\\\"$r_source_dir\\\"";
 
 $logger->debug( $cmd );
 system($cmd);
@@ -192,10 +187,6 @@ use Scalar::Util::Numeric qw(isneg isint isfloat);
 use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
 use MyX::Generic;
 use YAML::XS qw(LoadFile);
-use Cwd qw(abs_path)
-use File::Basename
-use Log::Log4perl qw(:easy);                                                                                                               
-use Log::Log4perl::CommandLine qw(:all);
 
 =head1 INHERIT
 
@@ -209,7 +200,7 @@ use Log::Log4perl::CommandLine qw(:all);
     
     -xml_file | x =>    This is a xml parameter file that contains all the parameters needed for the analysis
     
-    ATTENTION: You must pass either a yaml or xml file.
+    ATTENTION: You must pass either a yaml or xml file. For more information about passing in filter parameters check DaFilter.pm documentation
     
 =head1 PARAMETERS
     
@@ -235,7 +226,19 @@ use Log::Log4perl::CommandLine qw(:all);
     grp_meta_file       =>  File Path       ->  String
     Rsource_dir         =>  Directory Path  ->  String
     filter_params       =>  Hash Ref        ->  Array Ref( 0-100, True/False) ^(Optional)^
-
+    filter params example:
+    filter_params:
+        f1:
+        -   90
+        -   'false/true'
+        f-1:
+        -   10
+        -   'false/true'
+        
+    That will filter both abundance values of 1 and -1 in an and fashion.
+    The first param under the abundance value to filter is the percentage. True means it will keep everything above the filter percentage, and false means all the data with a percentage of abundance values less than that will be kept
+    
+    
 =head1 CONFIGURATION AND ENVIRONMENT
 
     Need to load R.

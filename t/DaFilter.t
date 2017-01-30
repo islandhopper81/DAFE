@@ -99,7 +99,6 @@ sub get_fake_param_obj_with_testable_data {
        min_sample_cpm => 0.03, #Must be positive and greater than 0
        test => '["BK", "RZ"]', #defines the two sample groups to compare
        test_col_name => "fraction", #where to look at the MetaG meta file to identify which group each experiment is from
-       heat_filter => "FALSE", #Do the columns of the heatmap need to be filtered
        Rsource_dir => "$abs_path/../R_lib/",
        filter_params => { "f1" => [90, "false"],
 						"f-1" => [90,"false"], }

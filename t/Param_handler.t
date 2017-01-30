@@ -8,7 +8,7 @@ use XML::Simple;
 use File::Temp qw/ tempfile tempdir /;
 use Test::Exception;
 use Test::Warn;
-use Test::More tests => 172; # Need to place the number of tests you run here.
+use Test::More tests => 165; # Need to place the number of tests you run here.
 use Data::Dumper;
 
 
@@ -65,7 +65,6 @@ my $yml_file = "$abs_path/../t/test_dir/test_edgeR_driver.yaml";
 {
 	#Need to test if it works without print params
 	$params_thref = get_test_href();
-	$params_thref->{heat_filter} = "";
 	$params_to = Param_handler->new( {href => $params_thref});
 	warnings_are { $params_to -> check_edger_params() } [], "just global and edger params";
 }
@@ -74,7 +73,6 @@ my $yml_file = "$abs_path/../t/test_dir/test_edgeR_driver.yaml";
 {
 	#Check the print parameters without the edger parameters
 	$params_thref->{ref_meta_cols} = '["Fraction", "Source", "Label"]';
-	$params_thref->{heat_filter} = "FALSE";
 	$params_thref->{ref_include_file} = "$abs_path/../t/test_dir/full_test_dir/names.txt";
 	$params_thref->{ref_exclude_file} = "$abs_path/../t/test_dir/full_test_dir/empty_file.txt";
 	$params_thref->{tree} = "$abs_path/../t/test_dir/full_test_dir/Rooted_test_newick.nwk";
@@ -533,29 +531,6 @@ my $yml_file = "$abs_path/../t/test_dir/test_edgeR_driver.yaml";
 	throws_ok( sub{ $params_to->_check_ref_meta_cols() }, 'MyX::Generic::BadValue', "_check_ref_meta_cols() -- wrong names are passed" );
 }
 
-#_check_heat_filter
-{
-	# Check if it works if correct param is passed
-	$params_to = Param_handler->new( {href => get_test_href()} );
-	warnings_are { $params_to->_check_heat_filter() } [], "_check_heat_filter -- no warnings";
-
-	# Check if MyX::Generic::Undef::Param is thrown if param isn't passed
-	$params_to = Param_handler->new();
-	throws_ok( sub{ $params_to->_check_heat_filter() }, 'MyX::Generic::Undef::Param', "_check_heat_filter -- check when filter isn't passed" );
-
-	#check to see if lowercase single letter can be passed
-	$params_thref = get_test_href();
-	$params_thref->{heat_filter} = "f";
-	$params_to = Param_handler->new( {href => $params_thref} );
-	warnings_are { $params_to->_check_heat_filter() } [], "_check_heat_filter -- no warnings when pass either a t or f";
-	
-	#check to see if wrong value throws error
-	$params_thref = get_test_href();
-	$params_thref->{heat_filter} = "no";
-	$params_to = Param_handler->new( {href => $params_thref} );
-	throws_ok( sub { $params_to->_check_heat_filter() }, 'MyX::Generic::BadValue', "_check_heat_filter -- no warnings when pass either a 0 or 1");
-}
-
 #check_filter_params
 {
 	$params_to = Param_handler->new( {href => get_test_href()} );
@@ -756,13 +731,6 @@ my $yml_file = "$abs_path/../t/test_dir/test_edgeR_driver.yaml";
 	is($params_to->get_ref_meta_cols(),$dummy_param,"get_ref_meta_cols()");
 }
 
-#get_heat_filter
-{
-	$dummy_param = "file";
-	$params_thref = { heat_filter => $dummy_param };
-	$params_to = Param_handler->new({href => $params_thref});
-	is($params_to->get_heat_filter(),$dummy_param,"get_heat_filter()");
-}
 #get_Rsource_dir
 {
 	$dummy_param = "file";
@@ -1082,22 +1050,6 @@ my $yml_file = "$abs_path/../t/test_dir/test_edgeR_driver.yaml";
 	is($params_to->get_ref_meta_cols(),$old_value, "set_ref_meta_cols() -- bad parameter passed");
 }
 
-
-#set_heat_filter
-{
-	$params_thref = get_test_href();
-	my $old_value = $params_thref->{heat_filter};
-	$params_thref->{heat_filter} = "filler";
-	$params_to = Param_handler->new( {href => $params_thref} );
-	$params_to->set_heat_filter($old_value);
-	is($params_to->get_heat_filter(),$old_value, "set_heat_filter() -- good param passed");
-	
-	#if a bad value is given to the setter it will revert to the old value
-	$dummy_param = "bad_value";
-	$params_to->set_heat_filter($dummy_param);
-	is($params_to->get_heat_filter(),$old_value, "set_heat_filter() -- bad parameter passed");
-}
-
 #set_Rsource_dir
 {
 	$params_thref = get_test_href();
@@ -1161,7 +1113,6 @@ sub get_test_href {
        min_sample_cpm => 0.03, #Must be positive and greater than 0
        test => '["BK", "RZ"]', #defines the two sample groups to compare
        test_col_name => "fraction", #where to look at the MetaG meta file to identify which group each experiment is from
-       heat_filter => "FALSE", #Do the columns of the heatmap need to be filtered
 	   Rsource_dir => "$abs_path/../R_lib",
 	   filter_params => { "f1" => [90, "false"],
 						"f-1" => [90,"false"], } 

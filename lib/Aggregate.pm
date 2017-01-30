@@ -138,8 +138,6 @@ use MyX::Generic;
     ## SETTERS ##
     #############
     
-    #NEED TO TALK ABOUT SCOTT
-        #The GRP META FILE DOES NOT HAVE SAME ID AS METAFILE
     sub _set_grp_metafile_order_array {
         my ($self) = @_;
         my $param_obj = $self->get_param_object();
@@ -307,9 +305,9 @@ use MyX::Generic;
                 }
                 $marker++;
                     
-                #Tell user something happened but it's not enough to kill prgrm
             }
         }
+        #Tell user something happened but it's not enough to kill prgrm
         if (scalar(@genes_wo_grp) > 0) {
             carp("These genes are not associated with a group: "
                 . join(", ", @genes_wo_grp) . "\n");

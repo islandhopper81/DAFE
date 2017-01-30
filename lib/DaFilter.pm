@@ -255,7 +255,7 @@ use MyX::Generic;
         }
         return \%passing_grps;
     }
-    #Change input on documentation
+    
     sub filter_and_print {
         my ($self, $param_handler, $outfile) = @_; #each arg ref needs filter # w/ array of percentage and true/false depending if you want to filter out below values
         my $arg_href = $param_handler->get_filter_params();
