@@ -47,6 +47,8 @@ foreach my $line ( <$NIN> ) {
     add_cog_group( $cog_href, $line );
 }
 
+close($NIN);
+
 ## Subroutines ##
 
 sub get_cog_href {
