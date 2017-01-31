@@ -41,7 +41,7 @@ foreach my $line ( <$IN> ) {
 	# this used to be in the fix strand block.  To preserve the comment line
 	# print it before going on to the next line.
 	if ( $line =~ m/^#/ ) {
-		print $fh (join("\t", @vals), "\n");
+		print $fh "$line\n";
 		next;
 	}
 	
@@ -59,7 +59,7 @@ foreach my $line ( <$IN> ) {
 	# get all the seperate fields in the line
 	@vals = split("\t", $line);
 	
-	#Fixes tag field
+	# Fixes tag field
     if ( $vals[8] =~ m/name / ) { 
       $vals[8] =~ s/;\s/;/g;
       $vals[8] =~ s/\s/=/g;
@@ -102,8 +102,13 @@ foreach my $line ( <$IN> ) {
 		$vals[0] = "#" . $vals[0];
 	}
 	
+	# check if the attribute values contain the htseq_i tag
+	if ( $vals[8] !~ m/$htseq_i/ ) {
+		$logger->warn("Line does not have a htseq_i value: $line");
+	}
+	
 	# Change the names of the genes in the gff file to include the genome id
-	if ( $line !~ m/^#/ ) {
+	if ( $vals[8] !~ m/$htseq_i=\S+?-\S+?;/ ) {
 		my @split_id_line = split /;/, $vals[(scalar(@vals)-1)];
 		foreach my $part ( @split_id_line ) {
 			if ( $part =~ m/$htseq_i/ ) {
@@ -113,11 +118,6 @@ foreach my $line ( <$IN> ) {
 				last;
 			}
 		}
-	}
-	
-	# check if the attribute values contain the htseq_i tag
-	if ( $vals[8] !~ m/$htseq_i/ ) {
-		$logger->warn("Line does not have a htseq_i value: $line");
 	}
 
 	print $fh (join("\t", @vals), "\n");

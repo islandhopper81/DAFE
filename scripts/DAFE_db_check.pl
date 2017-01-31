@@ -111,6 +111,7 @@ sub check_required_files {
     
     check_genome_fasta($id);
     check_gene_faa($id);
+	check_gene_fna($id);
     check_gff($id);  # this must come before check_annote
 	check_annote($id);
     
@@ -162,7 +163,7 @@ sub check_genome_fasta {
 sub correct_genome_fasta {
 	my ($file) = @_;
 	
-	$logger->info("Geome fasta file needs correction: $file");
+	$logger->info("Genome fasta file needs correction: $file");
 	my $command = "perl $correct_genome_exe --genome_fasta $file --overwrite";
 	$logger->info("Running correct_gff command: $command");
 	`$command`;
@@ -173,7 +174,8 @@ sub correct_genome_fasta {
 sub check_gene_faa {
     my ($id) = @_;
 	
-	# NOTE this file is no longer needed
+	# NOTE this file is no longer really needed
+	# but I'm keeping it because it might be useful in the future
     
     my $file = "$dafe_db/$id/$id" . "$gene_faa_ext";
     if ( ! -e $file ) {
@@ -188,8 +190,8 @@ sub check_gene_faa {
 	# check that the gene ID has the pattern: genomeID-geneID
 	my $faa_in = BioUtils::FastaIO->new({stream_type => '<', file => $file});
 	my $first_seq = $faa_in->get_next_seq();
-	my $seq_id = $first_seq->get_id();
 	if ( $first_seq->get_id() !~ m/$id-\S+/ ) {
+		$logger->info("Gene faa file needs correction: $file");
 		correct_gene_faa($id, $file, $faa_in, $first_seq);
 	}
     
@@ -200,6 +202,7 @@ sub correct_gene_faa {
 	my ($id, $file, $faa_in, $first_seq) = @_;
 	
 	# add logger statment here
+	$logger->info("Correcting gene fna file");
 	
 	correct_fasta_IDs($id, $file, $faa_in, $first_seq);
 }
@@ -220,8 +223,8 @@ sub check_gene_fna {
 	# check that the gene ID has the pattern: genomeID-geneID
 	my $fna_in = BioUtils::FastaIO->new({stream_type => '<', file => $file});
 	my $first_seq = $fna_in->get_next_seq();
-	my $seq_id = $first_seq->get_id();
 	if ( $first_seq->get_id() !~ m/$id-\S+/ ) {
+		$logger->info("Gene fna file needs correction: $file");
 		correct_gene_fna($id, $file, $fna_in, $first_seq);
 	}
     
@@ -229,11 +232,12 @@ sub check_gene_fna {
 }
 
 sub correct_gene_fna {
-	my ($id, $file, $faa_in, $first_seq) = @_;
+	my ($id, $file, $fna_in, $first_seq) = @_;
 	
 	# add a logger statement
+	$logger->info("Correcting gene fna file");
 	
-	correct_fasta_IDs($id, $file, $faa_in, $first_seq);
+	correct_fasta_IDs($id, $file, $fna_in, $first_seq);
 }
 
 sub correct_fasta_IDs {
@@ -285,7 +289,7 @@ sub check_gff {
 		or $logger->warn("Cannot open gff: $file");
 	
 	# NOTE: this loop looks like it goes through each line, but notice the
-	#		"last" statement at the end.  This effectively looks only at the
+	#		"last" statement at the end.  This essentially only looks at the
 	#		first non-comment line.
 	foreach my $line ( <$GFF> ) {
 		chomp $line;
