@@ -25,8 +25,8 @@ use FindBin qw($Bin);
 sub check_params;
 
 # Variables #
-my ($config_file, $dafe_db_dir, $reads_dir, $out_dir, $ref_names_file,
-    $sample_names_file, $perc_ids, $perc_ids_aref, $min_perc_id,
+my ($config_file, $dafe_db_dir, $combined_db_name, $reads_dir, $out_dir,
+    $ref_names_file, $sample_names_file, $perc_ids, $perc_ids_aref, $min_perc_id,
     $read_file_exten, $genome_file_exten, $gff_file_exten, $bam_file_prefix,
     $cov_stat_file_name, $htseq_file_prefix, $htseq_i, $make_count_tbls_exe,
     $pairs_file, $skip_mapping, $skip_filtering, $skip_htseq, $keep_bam_files,
@@ -50,6 +50,7 @@ my ($config_file, $dafe_db_dir, $reads_dir, $out_dir, $ref_names_file,
 my $options_okay = GetOptions (
     "config_file:s" => \$config_file,
     "dafe_db_dir:s" => \$dafe_db_dir,
+    "combined_db_name:s" => \$combined_db_name,
     "read_dir:s" => \$reads_dir,
     "out_dir:s" => \$out_dir,
     "ref_names_file:s" => \$ref_names_file,
@@ -537,81 +538,44 @@ sub get_jobs {
     my $command = get_bsub_command() . "\"";
     my $batch_count = 1;
     
-    # if the pairs file is provided use that to create the job list
-    if ( defined $pairs_file and -s $pairs_file ) {
-        ($ref_aref, $sample_aref) = get_pairs($pairs_file);
-        my $len = scalar @{$ref_aref};
-
-        for ( my $i = 0; $i < $len; $i++ ) {
-            my $tmp_command = get_command($ref_aref->[$i], $sample_aref->[$i]);
-            
-            if ( $batch_count == $node_batch_count ) {
-                # end the command and add it to the jobs array
-                $command .= $tmp_command . "\";";
-                push @jobs, $command;
-                
-                # start a new command the bsub part and a quote
-                $command = get_bsub_command() . "\"";
-                $batch_count = 1;
-            }
-            else {
-                # keep adding to the current command
-                $command .= $tmp_command;
-                $batch_count++;
-            }
-            
-            $logger->debug("Building command for: " .
-                           $ref_aref->[$i] . ", " .
-                           $sample_aref->[$i]);
-            $logger->debug("Built command: $command");
-        }
-    }
-    else {
-        # this is actually the standard way where everything in the
-        # ref_names_file and sample_names_file is ran
-        
-        $ref_aref = get_names($ref_names_file);
-        $sample_aref = get_names($sample_names_file);
-        
-        foreach my $ref ( @{$ref_aref} ) {
-            foreach my $sample ( @{$sample_aref} ) {
-                my $tmp_command = get_command($ref, $sample);
-                
-                if ( $batch_count == $node_batch_count ) {
-                    # end the command and add it to the jobs array
-                    $command .= $tmp_command . "\";";
-                    push @jobs, $command;
-                    
-                    # start a new command the bsub part and a quote
-                    $command = get_bsub_command() . "\"";
-                    $batch_count = 1;
-                }
-                else {
-                    # keep adding to the current command
-                    $command .= $tmp_command;
-                    $batch_count++;
-                }
-                
-                $logger->debug("Building command for: $ref, $sample");
-                $logger->debug("Built command: $tmp_command");
-            }
-        }
-    }
+    $sample_aref = get_names($sample_names_file);
     
+    foreach my $sample ( @{$sample_aref} ) {
+        my $tmp_command = get_command($sample);
+        
+        if ( $batch_count == $node_batch_count ) {
+            # end the command and add it to the jobs array
+            $command .= $tmp_command . "\";";
+            push @jobs, $command;
+            
+            # start a new command the bsub part and a quote
+            $command = get_bsub_command() . "\"";
+            $batch_count = 1;
+        }
+        else {
+            # keep adding to the current command
+            $command .= $tmp_command;
+            $batch_count++;
+        }
+        
+        $logger->debug("Building command for: $sample");
+        $logger->debug("Built command: $tmp_command");
+    }
+
     return(\@jobs);
 }
 
 sub get_command {
-    my ($ref, $sample) = @_;
+    my ($sample) = @_;
     
     my $command = "";
     
     if ( is_false($skip_mapping) ) {
-        $command .= get_mapping_command($ref, $sample, $min_perc_id);
+        $command .= get_mapping_command($sample, $min_perc_id);
     }
     
     if ( is_false($skip_filtering) ) {
-        $command .= get_filter_command($ref, $sample, $perc_ids_aref);
+        $command .= get_filter_command($sample, $perc_ids_aref);
     }
     
     if ( is_false($skip_htseq) ) {
@@ -620,7 +584,7 @@ sub get_command {
         #       $min_perc_id.
         my $tmp_perc_ids_aref = [($min_perc_id), @{$perc_ids_aref}];
         
-        $command .= get_htseq_command($ref, $sample, $tmp_perc_ids_aref, $htseq_i);
+        $command .= get_htseq_command($sample, $tmp_perc_ids_aref, $htseq_i);
     }
     
     if ( is_false($keep_bam_files) ) {
@@ -629,17 +593,17 @@ sub get_command {
         #       $min_perc_id.
         my $tmp_perc_ids_aref = [($min_perc_id), @{$perc_ids_aref}];
         
-        $command .= get_rm_bam_command($ref, $sample, $tmp_perc_ids_aref);
+        $command .= get_rm_bam_command($sample, $tmp_perc_ids_aref);
     }
     
     return($command);
 }
 
 sub get_rm_bam_command {
-    my ($ref, $sample, $perc_id_aref) = @_;
+    my ($sample, $perc_id_aref) = @_;
     
     my $command = " ";
-    my $bam_dir = "$out_dir/$ref/$sample/";
+    my $bam_dir = "$out_dir/$sample/";
     
     foreach my $perc_id ( @{$perc_id_aref} ) {
         my $bam_file = $bam_dir . $bam_file_prefix . "_id" . $perc_id . ".bam";
@@ -652,10 +616,10 @@ sub get_rm_bam_command {
 }
 
 sub get_filter_command {
-    my ($ref, $sample, $perc_id_aref) = @_;
+    my ($sample, $perc_id_aref) = @_;
     
     my $command = " ";
-    my $bam_dir = "$out_dir/$ref/$sample/";
+    my $bam_dir = "$out_dir/$sample/";
     
     foreach my $perc_id ( @{$perc_id_aref} ) {
     
@@ -668,7 +632,7 @@ sub get_filter_command {
         $out_bam_file = $bam_dir . $bam_file_prefix . "_id" . $perc_id . ".bam";
         
         # make the json file
-        $json_file = make_json_file($ref, $sample, $perc_id, $bam_dir);
+        $json_file = make_json_file($sample, $perc_id, $bam_dir);
         
         # generate the command
         $command .= "bamtools filter ";
@@ -681,7 +645,7 @@ sub get_filter_command {
 }
 
 sub make_json_file {
-    my ($ref, $sample, $perc_id, $bam_dir) = @_;
+    my ($sample, $perc_id, $bam_dir) = @_;
     
     my $json_file = $bam_dir . "id" . $perc_id . ".json";
     open my $JSON, ">", $json_file or
@@ -697,10 +661,10 @@ sub make_json_file {
 }
 
 sub get_htseq_command {
-    my ($ref, $sample, $perc_id_aref, $htseq_i) = @_;
+    my ($sample, $perc_id_aref, $htseq_i) = @_;
     
     my $command = " ";
-    my $bam_dir = "$out_dir/$ref/$sample/";
+    my $bam_dir = "$out_dir/$sample/";
     
     foreach my $perc_id ( @{$perc_id_aref} ) {
     
@@ -710,9 +674,7 @@ sub get_htseq_command {
         $bam_file = $bam_dir . $bam_file_prefix . "_id" . $perc_id . ".bam";
         
         # set the gff file
-        $gff_file = "$dafe_db_dir/";
-        $gff_file .= $ref . "/";
-        $gff_file .= $ref . ".gff";
+        $gff_file = "$dafe_db_dir/$combined_db_name" . ".gff";
         
         # set the output file
         $out_file = "$bam_dir/$htseq_file_prefix" . "_id" . $perc_id . ".txt";
@@ -737,9 +699,9 @@ sub get_htseq_command {
 }
 
 sub get_mapping_command {
-    my ($ref, $sample, $perc_id) = @_;
+    my ($sample, $perc_id) = @_;
     
-    my ($reads_file, $reads_file_regx, $ref_file, $out_bam_dir,
+    my ($reads_file, $reads_file_regx, $db_path, $out_bam_dir,
         $out_bam_file, $command);
             
     # find the sample reads file
@@ -754,16 +716,13 @@ sub get_mapping_command {
     
     # generate the reference file name
     {
-        $ref_file = "$dafe_db_dir/";
-        $ref_file .= $ref . "/";
-        $ref_file .= $ref . $genome_file_exten;
+        $db_path = "$dafe_db_dir/$combined_db_name/";
     }
     
     # generate the output bam file
     # this also creates the parent directories if they do not exist
     {
         $out_bam_dir = "$out_dir/";
-        $out_bam_dir .= $ref . "/";
         $out_bam_dir .= $sample . "/";
         
         if ( ! -d $out_bam_dir ) {
@@ -780,7 +739,7 @@ sub get_mapping_command {
         $logger->debug("Converting mapping percent ID to decimal: $perc_id");
         
         $command = "bbmap.sh ";
-        $command .= "ref=$ref_file ";
+        $command .= "path=$db_path ";
         $command .= "in=$reads_file ";
         $command .= "interleaved=false ";
         $command .= "ambiguous=random ";
@@ -891,6 +850,17 @@ sub check_params {
 	}
     if ( ! -d $dafe_db_dir ) {
         pod2usage(-message => "ERROR: --dafe_db_dir is not a directory\n\n",
+                    -exitval => 2); 
+    }
+    
+    # check the combined_db_name
+    if ( ! defined $combined_db_name ) {
+        pod2usage(-message => "ERROR: required --combined_db_name not defined\n\n",
+					-exitval => 2);
+    }
+    if ( ! -d "$dafe_db_dir/$combined_db_name" ) {
+        my $msg = "--combined_db_name is not a directory in $dafe_db_dir\n\n";
+        pod2usage(-message => "ERROR: $msg",
                     -exitval => 2); 
     }
     
@@ -1076,6 +1046,7 @@ sub check_params {
     $logger->info("Parameters");
     $logger->info("--config_file: $config_file") if (defined $config_file);
     $logger->info("--dafe_db_dir: $dafe_db_dir");
+    $logger->info("--combined_db_name: $combined_db_name");
     $logger->info("--reads_dir: $reads_dir");
     $logger->info("--out_dir: $out_dir");
     $logger->info("--ref_names_file: $ref_names_file");
@@ -1121,6 +1092,7 @@ sub load_config {
     #       the lsf* parameters
     
     $dafe_db_dir = is_defined($params{''}{dafe_db_dir});
+    $combined_db_name = is_defined($params{''}{combined_db_name});
     $reads_dir = is_defined($params{''}{reads_dir});
     $out_dir = is_defined($params{''}{out_dir});
     $ref_names_file = is_defined($params{''}{ref_names_file});
@@ -1238,6 +1210,7 @@ This documentation refers to version 0.0.1
     DAFE_count.pl
         [--config_file DAFE_count.conf]
         --dafe_db_dir my_dafe_db/
+        --combined_db_name all_genomes
         --read_dir my_metagenome_samples/
         --out_dir my_out_dir/
         --ref_names_file names.txt
@@ -1276,6 +1249,7 @@ This documentation refers to version 0.0.1
 
     --config_file = Path to config file with any of the described parameters
     --dafe_db_dir = Path to DAFE database directory
+    --combined_db_name = Name of the directory with the bbmap reference db
     --reads_dir = Path to directory with metagenome sample reads
     --out_dir = Path to where output files will be stored
     --ref_names_file = Path to file with reference names
@@ -1332,6 +1306,12 @@ should exist a directory for each reference sequence (eg genome).  Each of these
 reference directories are required to have a fasta genome file (*.fna), GFF file
 (*.gff), ......  The script ....... can be used to check the DAFE database for
 missing data or potential errors.
+
+=head2 --combined_db_name
+
+Name of the directory with the bbmap reference database.  This directory must
+be found in --dafe_db_dir.  It can be created by running
+DAFE_db_make_combined_db.pl.
 
 =head2 --reads_dir
 
