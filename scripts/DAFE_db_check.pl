@@ -13,19 +13,13 @@ use version; our $VERSION = qv('0.0.2');
 use Log::Log4perl qw(:easy);
 use Log::Log4perl::CommandLine qw(:all);
 use FindBin qw($Bin);
-use BioUtils::FastaIO;
-use File::Temp qw(tempfile);
 
 # Subroutines #
 sub check_dir_exists;
 sub check_required_files;
 sub check_genome_fasta;
-sub correct_genome_fasta;
 sub check_gene_faa;
-sub correct_gene_faa;
 sub check_gene_fna;
-sub correct_gene_fna;
-sub correct_fasta_IDs;
 sub check_gff;
 sub check_for_bad_lines;
 sub check_annote;
@@ -111,7 +105,6 @@ sub check_required_files {
     
     check_genome_fasta($id);
     check_gene_faa($id);
-	check_gene_fna($id);
     check_gff($id);  # this must come before check_annote
 	check_annote($id);
     
@@ -149,12 +142,7 @@ sub check_genome_fasta {
 		
 		# this looks for space in the name.  There should be none
 		if ( $line =~ m/ / ) {
-			correct_genome_fasta($file, $id);
-		}
-		
-		# looks for the genome id in the name
-		if ( $line !~ m/$id-\S+/ ) {
-			correct_genome_fasta($file, $id);
+			correct_genome_fasta($file);
 		}
 		
 		last;
@@ -166,48 +154,20 @@ sub check_genome_fasta {
 }
 
 sub correct_genome_fasta {
-	my ($file, $id) = @_;
+	my ($file) = @_;
 	
-	$logger->info("Genome fasta file needs correction: $file");
-	#my $command = "perl $correct_genome_exe --genome_fasta $file --overwrite";
-	#$logger->info("Running correct_gff command: $command");
-	#`$command`;
+	$logger->info("Geome fasta file needs correction: $file");
+	my $command = "perl $correct_genome_exe --genome_fasta $file --overwrite";
+	$logger->info("Running correct_gff command: $command");
+	`$command`;
 	
-	# make an output file
-	my ($fh, $filename) = tempfile();
-	close($fh);
-	my $fasta_out = BioUtils::FastaIO->new({stream_type => '>', file => $filename});
-	
-	# read the genome fasta file
-	my $fasta_in = BioUtils::FastaIO->new({stream_type => '<', file => $file});
-	
-	while ( my $seq = $fasta_in->get_next_seq() ) {
-		# set the ID as the header.  Note that the ID is defined as everything up
-		# until the first space in the header string.
-		$seq->set_header($seq->get_id());
-		
-		if ( $seq->get_id() !~ m/$id-\S+/ ) {
-			$seq->set_header($id . "-" . $seq->get_id());
-		}
-		
-		# print
-		$fasta_out->write_seq($seq);
-	}
-	
-	# now move the tmp file to the original genome fasta
-	# NOTE: this overwrite the original fasta file
-	$logger->info("Moving tmp file ($filename) to overwite genome fasta ($file)");
-	`mv $filename $file`;
-		
 	return 1;
 }
-
 
 sub check_gene_faa {
     my ($id) = @_;
 	
-	# NOTE this file is no longer really needed
-	# but I'm keeping it because it might be useful in the future
+	# NOTE this file is no longer needed
     
     my $file = "$dafe_db/$id/$id" . "$gene_faa_ext";
     if ( ! -e $file ) {
@@ -218,25 +178,8 @@ sub check_gene_faa {
         $logger->warn("$id -- Zero size gene faa");
 		return 0;
     }
-	
-	# check that the gene ID has the pattern: genomeID-geneID
-	my $faa_in = BioUtils::FastaIO->new({stream_type => '<', file => $file});
-	my $first_seq = $faa_in->get_next_seq();
-	if ( $first_seq->get_id() !~ m/$id-\S+/ ) {
-		$logger->info("Gene faa file needs correction: $file");
-		correct_gene_faa($id, $file, $faa_in, $first_seq);
-	}
     
     return($file);
-}
-
-sub correct_gene_faa {
-	my ($id, $file, $faa_in, $first_seq) = @_;
-	
-	# add logger statment here
-	$logger->info("Correcting gene fna file");
-	
-	correct_fasta_IDs($id, $file, $faa_in, $first_seq);
 }
 
 sub check_gene_fna {
@@ -251,56 +194,8 @@ sub check_gene_fna {
         $logger->warn("$id -- Zero size gene fna");
 		return 0;
     }
-	
-	# check that the gene ID has the pattern: genomeID-geneID
-	my $fna_in = BioUtils::FastaIO->new({stream_type => '<', file => $file});
-	my $first_seq = $fna_in->get_next_seq();
-	if ( $first_seq->get_id() !~ m/$id-\S+/ ) {
-		$logger->info("Gene fna file needs correction: $file");
-		correct_gene_fna($id, $file, $fna_in, $first_seq);
-	}
     
     return($file);
-}
-
-sub correct_gene_fna {
-	my ($id, $file, $fna_in, $first_seq) = @_;
-	
-	# add a logger statement
-	$logger->info("Correcting gene fna file");
-	
-	correct_fasta_IDs($id, $file, $fna_in, $first_seq);
-}
-
-sub correct_fasta_IDs {
-	my ($id, $file, $faa_in, $first_seq) = @_;
-	
-	# correct the fasta IDs by adding the genomeID to the beginning of the
-	# geneID in the header
-	
-	# make a temp file to put the correct seqs
-	my ($tmp_fh, $tmp_file) = tempfile();
-	close($tmp_fh);
-	
-	# make a BioUtilsIO object that point to the tmep file
-	my $faa_out = BioUtils::FastaIO->new({stream_type => '>',
-										  file => $tmp_file});
-	
-	# update and add the first sequence
-	# here I assume that the first value in the header is the gene ID
-	my $header = $first_seq->get_header();
-	$first_seq->set_header("$id-$header");
-	$faa_out->write_seq($first_seq);
-	
-	# update the remaining sequence in the file
-	while ( my $seq = $faa_in->get_next_seq() ) {
-		$header = $seq->get_header();
-		$seq->set_header("$id-$header");
-		$faa_out->write_seq($seq);
-	}
-	
-	# replace the original file with the tmp file
-	`mv $tmp_file $file`;
 }
 
 sub check_gff {
@@ -321,7 +216,7 @@ sub check_gff {
 		or $logger->warn("Cannot open gff: $file");
 	
 	# NOTE: this loop looks like it goes through each line, but notice the
-	#		"last" statement at the end.  This essentially only looks at the
+	#		"last" statement at the end.  This effectively looks only at the
 	#		first non-comment line.
 	foreach my $line ( <$GFF> ) {
 		chomp $line;
@@ -348,15 +243,10 @@ sub check_gff {
 			correct_gff($file);
 		}
         
-        # look for genome ID in the gene id's
-        if ( $vals[scalar(@vals) - 1] !~ qr/$id/ ) {
+        # look for genome name in the gene id's
+        if ( $vals[scalar(@vals) - 1] !~ qr/$id/ || $vals[scalar(@vals) - 1] =~ m/GO:/ ) {
             correct_gff($file);
         }
-		
-		# look for the genome ID in the scaffold ID
-		if ( $vals[0] !~ m/$id/ ) {
-			correct_gff($file);
-		}
 		
 		last;
 	}
@@ -977,8 +867,6 @@ version
 Log::Log4perl qw(:easy)
 Log::Log4perl::CommandLine qw(:all)
 FindBin qw($Bin)
-BioUtils::FastaIO
-File::Temp qw(tempfile)
 
 
 =head1 AUTHOR

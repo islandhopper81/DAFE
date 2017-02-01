@@ -20,10 +20,9 @@ my $usage = "$0 <input gff> <htseq_i>\n";
 my $input_gff = shift or die $usage;
 my $htseq_i = shift;
 
-# get the genome ID from the gff file name
 my @genome = split /\//, $input_gff;
-my $genome_id = $genome[scalar(@genome)-1];
-$genome_id =~ s/.gff//;
+my $genome_name = $genome[scalar(@genome)-1];
+$genome_name =~ s/.gff//;
 
 # set defaults if neccessary
 if ( ! defined $htseq_i ) { $htseq_i = "ID"; }
@@ -41,7 +40,7 @@ foreach my $line ( <$IN> ) {
 	# this used to be in the fix strand block.  To preserve the comment line
 	# print it before going on to the next line.
 	if ( $line =~ m/^#/ ) {
-		print $fh "$line\n";
+		print $fh (join("\t", @vals), "\n");
 		next;
 	}
 	
@@ -59,7 +58,7 @@ foreach my $line ( <$IN> ) {
 	# get all the seperate fields in the line
 	@vals = split("\t", $line);
 	
-	# Fixes tag field
+	#Fixes tag field
     if ( $vals[8] =~ m/name / ) { 
       $vals[8] =~ s/;\s/;/g;
       $vals[8] =~ s/\s/=/g;
@@ -102,27 +101,39 @@ foreach my $line ( <$IN> ) {
 		$vals[0] = "#" . $vals[0];
 	}
 	
-	# check if the attribute values contain the htseq_i tag
-	if ( $vals[8] !~ m/$htseq_i/ ) {
-		$logger->warn("Line does not have a htseq_i value: $line");
-	}
-	
-	# Change the names of the genes in the gff file to include the genome id
-	if ( $vals[8] !~ m/$htseq_i=\S+?-\S+?;/ ) {
+	# Change the names of the genes in the gff file to include the genome name
+	if ( $line !~ m/^#/ ) {
 		my @split_id_line = split /;/, $vals[(scalar(@vals)-1)];
 		foreach my $part ( @split_id_line ) {
-			if ( $part =~ m/$htseq_i/ ) {
+			if ( $part =~ m/ID/ ) {
 				my @id_split = split /=/, $part;
-				my $gene_id = $id_split[1];
-				$vals[(scalar(@vals)-1)] =~ s/$gene_id/$genome_id-$gene_id/;
+				my $id = $id_split[1];
+				#takes care of trailing go terms some times seen on names
+				if ( $id =~ m/GO:/ ) {
+					my @no_go = split /,/, $id;
+					my $new_id = $no_go[0];
+					
+					# If rerun, wont keep adding genome name
+					if ( $new_id =~ qr/$genome_name/ ) {
+						$id_split[1] = $new_id;
+						$vals[(scalar(@vals)-1)] = join "=", @id_split;
+						last;
+					}
+					#First run
+					else {
+						$vals[(scalar(@vals)-1)] =~ s/$id/$genome_name-$new_id/;
+						last;
+					}
+				}
+				$vals[(scalar(@vals)-1)] =~ s/$id/$genome_name-$id/;
 				last;
 			}
 		}
 	}
 	
-	# Change the scaffold name to include the genome ID
-	if ( $vals[0] !~ m/$genome_id/ ) {
-		$vals[0] = $genome_id . "-" . $vals[0];
+	# check if the attribute values contain the htseq_i tag
+	if ( $vals[8] !~ m/$htseq_i/ ) {
+		$logger->warn("Line does not have a htseq_i value: $line");
 	}
 
 	print $fh (join("\t", @vals), "\n");
