@@ -1,6 +1,8 @@
 #!/usr/bin/env perl
 
-# Corrects the names in a genome fasta file.  Makes sure the name has no spaces
+# Corrects the names in a genome fasta file.
+# 1. Makes sure the name has no spaces
+# 2. Adds the genome ID to the sequence ID (eg 12345-seq1)
 
 use strict;
 use warnings;
