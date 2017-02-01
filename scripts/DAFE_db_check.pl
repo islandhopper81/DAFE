@@ -149,7 +149,12 @@ sub check_genome_fasta {
 		
 		# this looks for space in the name.  There should be none
 		if ( $line =~ m/ / ) {
-			correct_genome_fasta($file);
+			correct_genome_fasta($file, $id);
+		}
+		
+		# looks for the genome id in the name
+		if ( $line =~ m/$id-\S+/ ) {
+			correct_genome_fasta($file, $id);
 		}
 		
 		last;
@@ -161,15 +166,42 @@ sub check_genome_fasta {
 }
 
 sub correct_genome_fasta {
-	my ($file) = @_;
+	my ($file, $id) = @_;
 	
-	$logger->info("Genome fasta file needs correction: $file");
-	my $command = "perl $correct_genome_exe --genome_fasta $file --overwrite";
-	$logger->info("Running correct_gff command: $command");
-	`$command`;
+	#$logger->info("Genome fasta file needs correction: $file");
+	#my $command = "perl $correct_genome_exe --genome_fasta $file --overwrite";
+	#$logger->info("Running correct_gff command: $command");
+	#`$command`;
 	
+	# make an output file
+	my ($fh, $filename) = tempfile();
+	close($fh);
+	my $fasta_out = BioUtils::FastaIO->new({stream_type => '>', file => $filename});
+	
+	# read the genome fasta file
+	my $fasta_in = BioUtils::FastaIO->new({stream_type => '<', file => $file});
+	
+	while ( my $seq = $fasta_in->get_next_seq() ) {
+		# set the ID as the header.  Note that the ID is defined as everything up
+		# until the first space in the header string.
+		$seq->set_header($seq->get_id());
+		
+		if ( $seq->get_id() !~ m/$id-\S+/ ) {
+			$seq->set_header($id . "-" . $seq->get_id());
+		}
+		
+		# print
+		$fasta_out->write_seq($seq);
+	}
+	
+	# now move the tmp file to the original genome fasta
+	# NOTE: this overwrite the original fasta file
+	$logger->info("Moving tmp file ($filename) to overwite genome fasta ($file)");
+	`mv $filename $file`;
+		
 	return 1;
 }
+
 
 sub check_gene_faa {
     my ($id) = @_;
