@@ -153,7 +153,7 @@ sub check_genome_fasta {
 		}
 		
 		# looks for the genome id in the name
-		if ( $line =~ m/$id-\S+/ ) {
+		if ( $line !~ m/$id-\S+/ ) {
 			correct_genome_fasta($file, $id);
 		}
 		
@@ -168,7 +168,7 @@ sub check_genome_fasta {
 sub correct_genome_fasta {
 	my ($file, $id) = @_;
 	
-	#$logger->info("Genome fasta file needs correction: $file");
+	$logger->info("Genome fasta file needs correction: $file");
 	#my $command = "perl $correct_genome_exe --genome_fasta $file --overwrite";
 	#$logger->info("Running correct_gff command: $command");
 	#`$command`;
@@ -348,10 +348,15 @@ sub check_gff {
 			correct_gff($file);
 		}
         
-        # look for genome name in the gene id's
+        # look for genome ID in the gene id's
         if ( $vals[scalar(@vals) - 1] !~ qr/$id/ ) {
             correct_gff($file);
         }
+		
+		# look for the genome ID in the scaffold ID
+		if ( $vals[0] !~ m/$id/ ) {
+			correct_gff($file);
+		}
 		
 		last;
 	}

@@ -113,11 +113,16 @@ foreach my $line ( <$IN> ) {
 		foreach my $part ( @split_id_line ) {
 			if ( $part =~ m/$htseq_i/ ) {
 				my @id_split = split /=/, $part;
-				my $id = $id_split[1];
-				$vals[(scalar(@vals)-1)] =~ s/$id/$genome_id-$id/;
+				my $gene_id = $id_split[1];
+				$vals[(scalar(@vals)-1)] =~ s/$gene_id/$genome_id-$gene_id/;
 				last;
 			}
 		}
+	}
+	
+	# Change the scaffold name to include the genome ID
+	if ( $vals[0] !~ m/$genome_id/ ) {
+		$vals[0] = $genome_id . "-" . $vals[0];
 	}
 
 	print $fh (join("\t", @vals), "\n");
