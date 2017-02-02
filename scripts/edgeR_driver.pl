@@ -153,6 +153,11 @@ else{
     $logger->info( "Filtering the Da_Table" );
     $da_filter_obj->filter_and_print( $param_obj, "$out_path/filt_da_tbl_$$.txt");
     $param_obj->print_yaml_file("$out_path/filt_da_tbl_$$.log");
+    #Append the date at the end of the log file
+    open my $OUT, ">>", "$out_path/filt_da_tbl_$$.log";
+    my $time_string = localtime();
+    print $OUT "\nDate and time this was run: $time_string";
+    close($OUT);
 }
 
 

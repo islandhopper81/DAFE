@@ -1,4 +1,4 @@
-#! usr/bin/env perl
+#! usr/bin/evn perl
 
 use strict;
 use warnings;
@@ -77,6 +77,12 @@ $da_filter_obj->filter_and_print($param_obj, $outfile);
 #change outfile to log file
 $outfile =~ s/\.txt/\.log/;
 $param_obj->print_yaml_file( $outfile );
+
+#Append the date at the end of the log file
+open my $OUT, ">>", $outfile;
+my $time_string = localtime();
+print $OUT "\nDate and time this was run: $time_string";
+close($OUT);
 
 __END__
 

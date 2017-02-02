@@ -36,6 +36,11 @@ my @vals = ();
 foreach my $line ( <$IN> ) {
 	chomp $line;
 	
+	#skip empty lines
+	if ( $line =~ m/^$/ ) {
+		next;
+	}
+	
 	# skip comment lines
 	# this used to be in the fix strand block.  To preserve the comment line
 	# print it before going on to the next line.
@@ -104,10 +109,12 @@ foreach my $line ( <$IN> ) {
 	# Change the names of the genes in the gff file to include the genome name
 	if ( $line !~ m/^#/ ) {
 		my @split_id_line = split /;/, $vals[(scalar(@vals)-1)];
+		
 		foreach my $part ( @split_id_line ) {
 			if ( $part =~ m/ID/ ) {
 				my @id_split = split /=/, $part;
 				my $id = $id_split[1];
+				
 				#takes care of trailing go terms some times seen on names
 				if ( $id =~ m/GO:/ ) {
 					my @no_go = split /,/, $id;
@@ -125,6 +132,7 @@ foreach my $line ( <$IN> ) {
 						last;
 					}
 				}
+				
 				$vals[(scalar(@vals)-1)] =~ s/$id/$genome_name-$id/;
 				last;
 			}
