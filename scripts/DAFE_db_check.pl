@@ -213,13 +213,15 @@ sub check_gene_faa {
 		return 0;
     }
 	
+	# NOTE: I'm removing this because it messes up when I run the
+	# 		DAFE_db_make_annote_tbl.pl script
 	# check that the gene ID has the patter: genomeID-geneID
-	my $faa_in = BioUtils::FastaIO->new({stream_type => '<', file => $file});
-	my $first_seq = $faa_in->get_next_seq();
-	if ( $first_seq->get_id() !~ m/$id-\S+/ ) {
-		$logger->info("Gene faa file needs correction: $file");
-		correct_gene_faa($id, $file, $faa_in, $first_seq);
-	}
+	#my $faa_in = BioUtils::FastaIO->new({stream_type => '<', file => $file});
+	#my $first_seq = $faa_in->get_next_seq();
+	#if ( $first_seq->get_id() !~ m/$id-\S+/ ) {
+	#	$logger->info("Gene faa file needs correction: $file");
+	#	correct_gene_faa($id, $file, $faa_in, $first_seq);
+	#}
     
     return($file);
 }
@@ -247,13 +249,15 @@ sub check_gene_fna {
 		return 0;
     }
 	
+	# NOTE: I'm removing this because it messes up when I run the
+	# 		DAFE_db_make_annote_tbl.pl script
 	# check that the gene ID has the patter: genomeID-geneID
-	my $fna_in = BioUtils::FastaIO->new({stream_type => '<', file => $file});
-	my $first_seq = $fna_in->get_next_seq();
-	if ( $first_seq->get_id() !~ m/$id-\S+/ ) {
-		$logger->info("Gene fna file needs correction: $file");
-		correct_gene_faa($id, $file, $fna_in, $first_seq);
-	}
+	#my $fna_in = BioUtils::FastaIO->new({stream_type => '<', file => $file});
+	#my $first_seq = $fna_in->get_next_seq();
+	#if ( $first_seq->get_id() !~ m/$id-\S+/ ) {
+	#	$logger->info("Gene fna file needs correction: $file");
+	#	correct_gene_faa($id, $file, $fna_in, $first_seq);
+	#}
     
     return($file);
 }
