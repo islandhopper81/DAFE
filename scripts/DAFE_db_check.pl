@@ -147,7 +147,7 @@ sub check_genome_fasta {
 		
 		# this looks for space in the name.  There should be none
 		if ( $line =~ m/ / ) {
-			correct_genome_fasta($file);
+			correct_genome_fasta($file, $id);
 		}
 		
 		# looks for the genome id in the name
