@@ -19,6 +19,8 @@ use Config::Std;
 use Data::Dumper;
 use IPC::Cmd qw(can_run run);
 use File::Basename;
+use File::Temp qw(tempfile);
+use BioUtils::FastaIO;
 
 # Subroutines #
 sub combine_genomes;
