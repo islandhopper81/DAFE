@@ -22,6 +22,8 @@ use File::Basename;
 
 # Subroutines #
 sub combine_genomes;
+sub correct_genome;
+sub correct_gff;
 sub make_bbmap_db;
 sub check_params;
 sub _is_defined;
@@ -104,6 +106,7 @@ sub combine_genomes() {
 		$genome_path = correct_genome($genome_path, $g);
 		$gff_path = correct_gff($gff_path, $g);
 		
+		# concatenate the files
 		`cat $genome_path >> $genome_out_file`;
 		`cat $gff_path >> $gff_out_file`;
 	}
