@@ -246,11 +246,6 @@ sub add_to_tbl {
         }
 		#my $annote_id = shift @vals;
 		
-		# add the genome ID to the gene ID if it doesn't already have it
-		if ( $gene_id !~ m/$genome_id/ ) {
-			$gene_id = $genome_id . "-$gene_id";
-		}
-		
         $tbl_href->{$gene_id}{$type} = join("\t", @vals);
     }
     
@@ -283,7 +278,8 @@ sub print_tbl {
 	# print the table values
     foreach my $gene_id ( keys %{$tbl_href} ) {
         $logger->debug("Getting info for gene_id: $gene_id");
-        print $OUT $genome_id, "-", $gene_id, "\t";
+        #print $OUT $genome_id, "-", $gene_id, "\t";
+		print $OUT $gene_id, "\t";
         
 		# print all the values from the gff_annote file
         if ( defined $tbl_href->{$gene_id}{"gff_annote"} ) {

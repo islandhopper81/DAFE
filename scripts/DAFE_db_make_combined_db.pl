@@ -28,7 +28,7 @@ sub _is_defined;
 
 # Variables #
 my ($config_file, $dafe_db_dir, $ref_names_file, $sample_names_file,
-	$genome_file_exten, $gff_file_exten, $combined_db_name, 
+	$genome_file_exten, $gff_file_exten, $combined_db_name, $htseq_i,
     $lsf_threads, $lsf_mem, $lsf_queue, $lsf_out_file, $lsf_err_file,
     $lsf_job_name, 
     $help, $man);
@@ -41,6 +41,7 @@ my $options_okay = GetOptions (
     "genome_file_exten:s" => \$genome_file_exten,
     "gff_file_exten:s" => \$gff_file_exten,
 	"combined_db_name:s" => \$combined_db_name,
+	"htseq_i:s" => \$htseq_i,
     "lsf_threads:i" => \$lsf_threads,
     "lsf_mem:i" => \$lsf_mem,
     "lsf_queue:s" => \$lsf_queue,
@@ -99,11 +100,96 @@ sub combine_genomes() {
 		$genome_path = "$dafe_db_dir/$g/$g" . $genome_file_exten;
 		$gff_path = "$dafe_db_dir/$g/$g" . $gff_file_exten;
 		
+		# get the corrected files
+		$genome_path = correct_genome($genome_path, $g);
+		$gff_path = correct_gff($gff_path, $g);
+		
 		`cat $genome_path >> $genome_out_file`;
 		`cat $gff_path >> $gff_out_file`;
 	}
 	
 	return($genome_out_file);
+}
+
+sub correct_genome {
+	my ($file, $genome_id) = @_;
+	
+	# correct the mistakes -- you know it is necessary at this point.
+	$logger->info("Genome fasta file needs correction: $file");				
+ 
+	# make an output file		
+	my ($fh, $filename) = tempfile();		
+	close($fh);		
+	my $fasta_out = BioUtils::FastaIO->new({stream_type => '>', file => $filename});		
+
+	# read the genome fasta file		
+	my $fasta_in = BioUtils::FastaIO->new({stream_type => '<', file => $file});		
+	
+	while ( my $seq = $fasta_in->get_next_seq() ) {
+		# set the ID as the header.  Note that the ID is defined as everything up
+		# until the first space in the header string.
+		$seq->set_header($seq->get_id());
+				
+		if ( $seq->get_id() !~ m/$genome_id-\S+/ ) {		
+			$seq->set_header($genome_id . "-" . $seq->get_id());		
+		}		
+		
+		# print		
+		$fasta_out->write_seq($seq);		
+	}
+	
+  	return($filename);
+}
+
+sub correct_gff {
+	my ($genome_id, $file) = @_;
+	
+	# create a temp file for outputing the corrected gff file
+	my ($fh, $filename) = tempfile();
+	
+	# open the gff file
+	open my $GFF, "<", $file or
+		$logger->warn("Cannot open gff: $file");
+	
+	my @vals = ();
+	foreach my $line ( <$GFF> ) {
+		chomp $line;
+		
+		#skip empty lines
+		if ( $line =~ m/^$/ ) {
+			next;
+		}
+		
+		# skip comment lines
+		# this used to be in the fix strand block.  To preserve the comment line
+		# print it before going on to the next line.
+		if ( $line =~ m/^#/ ) {
+			print $fh "$line\n";
+			next;
+		}
+		
+		# get all the seperate fields in the line
+		@vals = split("\t", $line);
+		
+		# Change the scaffold name to include the genome ID
+		if ( $vals[0] !~ m/$genome_id/ ) {
+			$vals[0] = $genome_id . "-" . $vals[0];
+		}
+		
+		# Change the ID of the genes in the gff file to include the genome ID
+		if ( $vals[8] !~ m/$htseq_i=$genome_id-\S+?/ ) {
+			if ( $vals[8] =~ m/$htseq_i=(\S+?);/ ) {
+				my $new_id = $htseq_i . "=" . $genome_id . "-" . $1;
+				$vals[8] =~ s/$htseq_i=\S+?;/$new_id;/;
+			}
+		}
+		
+		print $fh (join("\t", @vals), "\n");
+	}
+	close($fh);
+	close($GFF);
+	
+	return($filename);
 }
 
 sub make_bbmap_db {
@@ -161,6 +247,11 @@ sub check_params {
 	# check combined_db_name
 	if ( ! defined $combined_db_name ) {
 		$combined_db_name = "all_genomes";
+	}
+	
+	# check htseq_i
+	if ( ! defined $htseq_i ) {
+		$htseq_i = "ID";
 	}
     
     # check lsf_threads

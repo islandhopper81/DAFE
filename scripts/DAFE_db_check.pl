@@ -29,6 +29,7 @@ sub correct_fasta_IDs;
 sub check_gff;
 sub check_for_bad_lines;
 sub check_annote;
+sub update_gff_IDs;
 
 # Variables #
 my ($dafe_db, $genome, $meta_data_file,
@@ -109,12 +110,16 @@ sub check_required_files {
     
     check_genome_fasta($id);
     check_gene_faa($id);
-	check_gene_fna($id);
     check_gff($id);  # this must come before check_annote
 	check_annote($id);
     
     # do I need these for anything?
     #check_gene_fna($id);
+	
+	# update IDs to include the genomeID
+	# UPDATE: I commented this because I now do this operation when I make the
+	# 			combined database.
+	#update_gff_IDs($id);
     
 }
 
@@ -131,6 +136,7 @@ sub check_genome_fasta {
 		return 0;
     }
 	
+	# check the file to see if it needs correction
 	# check if I need to correct the names in the genome file
 	open my $FNA, "<", $file
 		or $logger->warn("Cannot open genome fasta: $file");
@@ -150,14 +156,12 @@ sub check_genome_fasta {
 			correct_genome_fasta($file, $id);
 		}
 		
-		# looks for the genome id in the name
 		if ( $line !~ m/$id-\s+/ ) {
 			correct_genome_fasta($file, $id);
 		}
 		
 		last;
 	}
-	
 	close($FNA);
     
     return($file);
@@ -166,6 +170,7 @@ sub check_genome_fasta {
 sub correct_genome_fasta {
 	my ($file, $id) = @_;
 	
+	# correct the mistakes -- you know it is necessary at this point.
 	$logger->info("Genome fasta file needs correction: $file");				
  
 	# make an output file		
@@ -184,7 +189,7 @@ sub correct_genome_fasta {
 		if ( $seq->get_id() !~ m/$id-\S+/ ) {		
 			$seq->set_header($id . "-" . $seq->get_id());		
 		}		
-				
+		
 		# print		
 		$fasta_out->write_seq($seq);		
 	}		
@@ -539,6 +544,100 @@ sub gbk_annotation {
 		$logger->info("Trying to make annote file using gkb command: $gbk_command");
 		`$gbk_command`;
 	}
+	
+	return 1;
+}
+
+sub update_gff_IDs {
+	my ($genome_id) = @_;
+	
+	# I realized that it is essential to have the geneIDs in the gff file.
+	# This because really important when I start combining the genomes and gff
+	# files to make a single database to which to map reads.  I tried adding
+	# the genomeIDs as the files were made but that was causing a ton of
+	# problems.  So this function makes those neccessary changes.  It is
+	# definitely inefficient to do it this way, but much easier from a
+	# development perspective.  If the inefficiency begins to bother me I would
+	# recommend redesigning the DAFE db checking and correcting altogether.
+	
+	# create a temp file for outputing the corrected gff file
+	my ($fh, $filename) = tempfile();
+	
+	# open the gff file
+	my $file = "$dafe_db/$genome_id/$genome_id" . "$gff_ext";
+	open my $GFF, "<", $file or
+		$logger->warn("Cannot open gff: $file");
+	
+	my @vals = ();
+	foreach my $line ( <$GFF> ) {
+		chomp $line;
+		
+		#skip empty lines
+		if ( $line =~ m/^$/ ) {
+			next;
+		}
+		
+		# skip comment lines
+		# this used to be in the fix strand block.  To preserve the comment line
+		# print it before going on to the next line.
+		if ( $line =~ m/^#/ ) {
+			print $fh "$line\n";
+			next;
+		}
+		
+		# get all the seperate fields in the line
+		@vals = split("\t", $line);
+		
+		# Change the scaffold name to include the genome ID
+		if ( $vals[0] !~ m/$genome_id/ ) {
+			$vals[0] = $genome_id . "-" . $vals[0];
+		}
+		
+		# Change the ID of the genes in the gff file to include the genome ID
+		if ( $vals[8] !~ m/$correct_gff_htseq_i=$genome_id-\S+?/ ) {
+			if ( $vals[8] =~ m/$correct_gff_htseq_i=(\S+?);/ ) {
+				my $new_id = $correct_gff_htseq_i . "=" . $genome_id . "-" . $1;
+				#print "new_id: $new_id\n";
+				$vals[8] =~ s/$correct_gff_htseq_i=\S+?;/$new_id;/;
+			}
+		}
+		
+		print $fh (join("\t", @vals), "\n");
+	}
+	
+	close($fh);
+	`mv $filename $file`;
+	
+	
+	# now do the same update for the all_annote.txt file
+	# create a temp file for outputing the corrected gff file
+	($fh, $filename) = tempfile();
+	
+	# open the annotation file
+	$file = "$dafe_db/$genome_id/$annote_file";
+	open my $ANN, "<", $file or
+		$logger->warn("Cannot open annote file: $file");
+	
+	my $seen_header = 0;
+	foreach my $line ( <$ANN> ) {
+		chomp $line;
+		
+		# skip the header line
+		if ( $seen_header == 0 ) {
+			$seen_header = 1;
+			print $fh $line, "\n";
+			next;
+		}
+		
+		if ($line !~ m/^$genome_id-\S+/ ) {
+			$line = $genome_id . "-" . $line;
+		}
+		
+		print $fh $line, "\n";
+	}
+	
+	close($fh);
+	`mv $filename $file`;
 	
 	return 1;
 }
