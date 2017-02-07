@@ -185,10 +185,10 @@ sub correct_genome_fasta {
 		# set the ID as the header.  Note that the ID is defined as everything up
 		# until the first space in the header string.
 		$seq->set_header($seq->get_id());
-				
-		if ( $seq->get_id() !~ m/$id-\S+/ ) {		
-			$seq->set_header($id . "-" . $seq->get_id());		
-		}		
+		
+		#if ( $seq->get_id() !~ m/$id-\S+/ ) {		
+		#	$seq->set_header($id . "-" . $seq->get_id());		
+		#}		
 		
 		# print		
 		$fasta_out->write_seq($seq);		
