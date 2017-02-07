@@ -147,7 +147,7 @@ sub correct_genome {
 }
 
 sub correct_gff {
-	my ($genome_id, $file) = @_;
+	my ($file, $genome_id) = @_;
 	
 	# create a temp file for outputing the corrected gff file
 	my ($fh, $filename) = tempfile();
@@ -200,7 +200,9 @@ sub correct_gff {
 sub make_bbmap_db {
 	my ($combined_fasta, $combined_db_name, $dafe_db_dir) = @_;
 	
-	`bbmap.sh path="$dafe_db_dir/$combined_db_name/" ref=$combined_fasta`;
+	my $out_dir = dirname($dafe_db_dir);
+	
+	`bbmap.sh path="$out_dir/$combined_db_name/" ref=$combined_fasta`;
 	
 	return 1;
 }
