@@ -65,11 +65,6 @@ foreach my $line ( <$IN> ) {
 	# get all the seperate fields in the line
 	@vals = split("\t", $line);
 	
-	# Change the scaffold name to include the genome ID
-	#if ( $vals[0] !~ m/$genome_id/ ) {
-	#	$vals[0] = $genome_id . "-" . $vals[0];
-	#}
-	
 	# Fixes tag field
     if ( $vals[8] =~ m/name / ) { 
       $vals[8] =~ s/;\s/;/g;
@@ -117,13 +112,6 @@ foreach my $line ( <$IN> ) {
 	if ( $vals[8] !~ m/$htseq_i=/ ) {
 		$vals[8] = "ID=" . $genome_id . "-" . $line_count . ";" . $vals[8];
 	}
-	
-	# Change the ID of the genes in the gff file to include the genome ID
-	#if ( $line !~ m/^#/ and $vals[8] !~ m/$htseq_i=\S+-\S+?/ ) {
-	#	if ( $vals[8] =~ m/$htseq_i=(\S+?);/ ) {
-	#		$vals[8] =~ s/$htseq_i=\S+?;/$htseq_i=$genome_id-$1;/;
-	#	}
-	#}
 	
 	print $fh (join("\t", @vals), "\n");
 	
