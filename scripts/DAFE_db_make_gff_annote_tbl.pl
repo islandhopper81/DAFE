@@ -165,7 +165,7 @@ foreach my $id ( @genome_ids ) {
 		my @vals = ();
 		foreach my $tag ( @headers ) {
 			if ( defined $gene->{$tag} ) {
-				push @vals, $gene->{$tag};
+				push @vals, "$id-" . $gene->{$tag};
 			}
 			else {
 				push @vals, "NA";
