@@ -278,7 +278,7 @@ sub print_tbl {
 	# print the table values
     foreach my $gene_id ( keys %{$tbl_href} ) {
         $logger->debug("Getting info for gene_id: $gene_id");
-        print $OUT $gene_id, "\t";
+        print $OUT $genome_id, "-", $gene_id, "\t";
         
 		# print all the values from the gff_annote file
         if ( defined $tbl_href->{$gene_id}{"gff_annote"} ) {
