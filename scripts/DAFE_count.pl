@@ -317,12 +317,10 @@ sub check_output_files {
         $ref_aref = get_names($ref_names_file);
         $sample_aref = get_names($sample_names_file);
         
-        foreach my $ref ( @{$ref_aref} ) {
-            foreach my $sample ( @{$sample_aref} ) {
-                check_bam_file($ref, $sample, $min_perc_id);
-                foreach my $perc_id ( @{$tmp_perc_ids_aref} ) {
-                    check_htseq_file($ref, $sample, $perc_id, $htseq_i);
-                }
+        foreach my $sample ( @{$sample_aref} ) {
+            check_bam_file($sample, $min_perc_id);
+            foreach my $perc_id ( @{$tmp_perc_ids_aref} ) {
+                check_htseq_file($sample, $perc_id, $htseq_i);
             }
         }
     }
@@ -333,9 +331,9 @@ sub check_output_files {
 }
 
 sub check_bam_file {
-    my ($ref, $sample, $perc_id) = @_;
+    my ($sample, $perc_id) = @_;
     
-    my $file_name = "$out_dir/$ref/$sample/$bam_file_prefix\_id" . $perc_id . ".bam";
+    my $file_name = "$out_dir/$sample/$bam_file_prefix\_id" . $perc_id . ".bam";
     
     if ( is_false($keep_bam_files) ) {
         # if keep_bam_files is false the bam files are deleted before I get to
@@ -353,9 +351,9 @@ sub check_bam_file {
 }
 
 sub check_htseq_file {
-    my ($ref, $sample, $perc_id, $htseq_i) = @_;
+    my ($sample, $perc_id, $htseq_i) = @_;
     
-    my $file_name = "$out_dir/$ref/$sample/$htseq_file_prefix\_id" . $perc_id . ".txt";
+    my $file_name = "$out_dir/$sample/$htseq_file_prefix\_id" . $perc_id . ".txt";
     
     if ( ! -e $file_name ) {
         # if the file is missing it's likely the bam file is also missing
@@ -367,17 +365,17 @@ sub check_htseq_file {
         # not reads that mapped to this reference sequence
         $logger->warn("htseq-count file is empty: $file_name");
         $logger->warn("Trying to make an htseq-count file with all 0 values");
-        make_htseq_file($file_name, $ref, $htseq_i);
+        make_htseq_file($file_name, $htseq_i);
     }
     
     return 1;
 }
 
 sub make_htseq_file {
-    my ($file_name, $ref, $htseq_i) = @_;
+    my ($file_name, $htseq_i) = @_;
     
     # first make sure the gff file exists and is non-empty in the dafe_db
-    my $gff_file = "$dafe_db_dir/$ref/$ref$gff_file_exten";
+    my $gff_file = "$dafe_db_dir/$combined_db_name" . ".gff";
     if ( ! -s $gff_file ) {
         $logger->warn("Cannot make htseq-count file because missing gff: $gff_file");
     }
