@@ -375,7 +375,7 @@ sub make_htseq_file {
     my ($file_name, $htseq_i) = @_;
     
     # first make sure the gff file exists and is non-empty in the dafe_db
-    my $gff_file = "$dafe_db_dir/$combined_db_name" . ".gff";
+    my $gff_file = "$dafe_db_dir/../$combined_db_name" . ".gff";
     if ( ! -s $gff_file ) {
         $logger->warn("Cannot make htseq-count file because missing gff: $gff_file");
     }
@@ -672,7 +672,7 @@ sub get_htseq_command {
         $bam_file = $bam_dir . $bam_file_prefix . "_id" . $perc_id . ".bam";
         
         # set the gff file
-        $gff_file = "$dafe_db_dir/$combined_db_name" . ".gff";
+        $gff_file = "$dafe_db_dir/../$combined_db_name" . ".gff";
         
         # set the output file
         $out_file = "$bam_dir/$htseq_file_prefix" . "_id" . $perc_id . ".txt";
