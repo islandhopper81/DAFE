@@ -716,7 +716,7 @@ sub get_mapping_command {
     
     # generate the reference file name
     {
-        $db_path = "$dafe_db_dir/$combined_db_name/";
+        $db_path = "$dafe_db_dir/../$combined_db_name/";
     }
     
     # generate the output bam file
