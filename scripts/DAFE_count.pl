@@ -898,7 +898,7 @@ sub check_params {
         pod2usage(-message => "ERROR: required --combined_db_name not defined\n\n",
 					-exitval => 2);
     }
-    if ( ! -d "$dafe_db_dir/$combined_db_name" ) {
+    if ( ! -d "$dafe_db_dir/../$combined_db_name" ) {
         my $msg = "--combined_db_name is not a directory in $dafe_db_dir\n\n";
         pod2usage(-message => "ERROR: $msg",
                     -exitval => 2); 
