@@ -182,12 +182,12 @@ sub reformat_output_structure {
     my $tmp_perc_ids_aref = [($min_perc_id), @{$perc_ids_aref}];
     
     # make the OutputRestruct object
-    my %args = {"out_dir" => $out_dir,
+    my %args = ("out_dir" => $out_dir,
                 "new_out_dir" => $out_dir_reform,
                 "ref_aref" => $ref_aref,
                 "sample_aref" => $sample_aref,
                 "perc_ids_aref" => $tmp_perc_ids_aref,
-                "htseq_file_prefix" => $htseq_file_prefix};
+                "htseq_file_prefix" => $htseq_file_prefix);
     my $output_restruct = DAFE::Count::OutputRestruct->new(\%args);
     $output_restruct->restructure();
     
