@@ -27,13 +27,13 @@ sub check_params;
 
 # Variables #
 my ($config_file, $dafe_db_dir, $combined_db_name, $reads_dir, $out_dir,
-    $ref_names_file, $sample_names_file, $perc_ids, $perc_ids_aref, $min_perc_id,
-    $read_file_exten, $genome_file_exten, $gff_file_exten, $bam_file_prefix,
-    $cov_stat_file_name, $htseq_file_prefix, $htseq_i, $make_count_tbls_exe,
-    $pairs_file, $skip_mapping, $skip_filtering, $skip_htseq, $keep_bam_files,
-    $lsf_threads, $lsf_mem, $lsf_queue, $lsf_out_file, $lsf_err_file,
-    $lsf_job_name, 
-    $queue_batch_count, $node_batch_count, $queue_max, $runtime_max, $jobs_file,
+    $restruct_out_dir, $ref_names_file, $sample_names_file, $perc_ids,
+    $perc_ids_aref, $min_perc_id, $read_file_exten, $genome_file_exten,
+    $gff_file_exten, $bam_file_prefix, $cov_stat_file_name, $htseq_file_prefix,
+    $htseq_i, $make_count_tbls_exe, $pairs_file, $skip_mapping, $skip_filtering,
+    $skip_htseq, $keep_bam_files, $lsf_threads, $lsf_mem, $lsf_queue,
+    $lsf_out_file, $lsf_err_file, $lsf_job_name, $queue_batch_count,
+    $node_batch_count, $queue_max, $runtime_max, $jobs_file,
     $help, $man);
 
 # NOTE: perc_ids_aref and min_perc_id are not a parameters passed in via the
@@ -54,6 +54,7 @@ my $options_okay = GetOptions (
     "combined_db_name:s" => \$combined_db_name,
     "read_dir:s" => \$reads_dir,
     "out_dir:s" => \$out_dir,
+    "restruct_out_dir:s" => \$restruct_out_dir,
     "ref_names_file:s" => \$ref_names_file,
     "sample_names_file:s" => \$sample_names_file,
     "perc_ids:s" => \$perc_ids,
@@ -159,13 +160,6 @@ sub reformat_output_structure {
     # for each genome and inside that directory and directory for each sample with
     # count files
     
-    # create the reformated output directory
-    my $tmp_out_dir = $out_dir;
-    $tmp_out_dir =~ s/\/$//;
-    
-    my $out_dir_reform = $tmp_out_dir . "_reformated/";
-    `mkdir $out_dir_reform` if ( ! -d $out_dir_reform );
-    
     # get the list of samples and references (ie genomes)
     my ($ref_aref, $sample_aref);
     if ( defined $pairs_file and -s $pairs_file ) {
@@ -186,7 +180,7 @@ sub reformat_output_structure {
     
     # make the OutputRestruct object
     my %args = ("out_dir" => $out_dir,
-                "new_out_dir" => $out_dir_reform,
+                "new_out_dir" => $restruct_out_dir,
                 "ref_aref" => $ref_aref,
                 "sample_aref" => $sample_aref,
                 "perc_ids_aref" => $tmp_perc_ids_aref,
@@ -215,7 +209,7 @@ sub make_gene_count_tbls {
     # build a loop for all the different percent identities
     foreach my $perc_id ( @{$tmp_perc_ids_aref} ) {
         my $command = "bash $make_count_tbls_exe ";
-        $command .= "-b $out_dir ";
+        $command .= "-b $restruct_out_dir ";
         $command .= "-i $ref_names_file ";
         $command .= "-s $sample_names_file ";
         $command .= "-c $htseq_file_prefix\_id" . $perc_id . ".txt ";
@@ -930,6 +924,17 @@ sub check_params {
         $logger->info("Creating out_dir ($out_dir)");
     }
     
+    # check restruct_out_dir
+    if ( ! defined $restruct_out_dir ) {
+        my $tmp = $out_dir;
+        $tmp =~ s/\/$//;
+        $restruct_out_dir = $tmp . "_restructured/";
+    }
+    if ( ! -d $restruct_out_dir ) {
+        `mkdir $restruct_out_dir`;
+        $logger->info("Creating restructured out dir ($restruct_out_dir)");
+    }
+    
     # check ref_names_file
     if ( defined $ref_names_file and ! -e $ref_names_file ) {
         pod2usage(-message => "ERROR: --ref_names_file is an empty file\n\n",
@@ -1095,6 +1100,7 @@ sub check_params {
     $logger->info("--combined_db_name: $combined_db_name");
     $logger->info("--reads_dir: $reads_dir");
     $logger->info("--out_dir: $out_dir");
+    $logger->info("--restruct_out_dir: $restruct_out_dir");
     $logger->info("--ref_names_file: $ref_names_file");
     $logger->info("--sample_names_file: $sample_names_file");
     $logger->info("--perc_ids: $perc_ids");
@@ -1141,6 +1147,7 @@ sub load_config {
     $combined_db_name = is_defined($params{''}{combined_db_name});
     $reads_dir = is_defined($params{''}{reads_dir});
     $out_dir = is_defined($params{''}{out_dir});
+    $restruct_out_dir = is_defined($params{''}{restruct_out_dir});
     $ref_names_file = is_defined($params{''}{ref_names_file});
     $sample_names_file = is_defined($params{''}{sample_names_file});
     $perc_ids = is_defined($params{''}{perc_ids});
@@ -1259,6 +1266,7 @@ This documentation refers to version 0.0.1
         --combined_db_name all_genomes
         --read_dir my_metagenome_samples/
         --out_dir my_out_dir/
+        [--restruct_out_dir restructured_out_dir/]
         --ref_names_file names.txt
         --sample_names_file samples.names.txt
         --perc_ids "60,70,80,90,95"
@@ -1298,6 +1306,7 @@ This documentation refers to version 0.0.1
     --combined_db_name = Name of the directory with the bbmap reference db
     --reads_dir = Path to directory with metagenome sample reads
     --out_dir = Path to where output files will be stored
+    --restruct_out_dir = Path to where restructured output files are stored
     --ref_names_file = Path to file with reference names
     --sample_names_file = Path to file with sample names
     --perc_ids = Comma seperated list of percent IDs to using when filtering
@@ -1372,6 +1381,14 @@ like "sample_name*.fastq.gz" where sample_name is the same name as found in the
 
 Path to where output files will be stored.  If --out_dir does not exist as a
 directory it will be created.
+
+=head2 [--restruct_out_dir]
+
+Path to where restrucutred output files are stored.  When I changed the
+algorithm to use a combined database I restrucutre the output files to have the
+same format as when I use the multi-genome database scheme.  This way downstream
+scripts will continue to work.
+DEFAULT: --out_dir . "_restructured"
 
 =head2 --ref_names_file
 
