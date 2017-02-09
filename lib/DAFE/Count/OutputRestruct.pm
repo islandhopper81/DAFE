@@ -120,6 +120,8 @@ my $logger = get_logger();
 		
 		# reformat the output
 		$self->_reformat();
+		
+		return 1;
 	}
 	
 	sub _mkdir_structure {
@@ -238,73 +240,53 @@ __END__
 
 =head1 NAME
 
-<MODULE NAME> - [One line description of module's purpose here]
+DAFE::Count::OutputRestruct - Restructure the output to match DAFEv1 format
 
 
 =head1 VERSION
 
-This document describes <MODULE NAME> version 0.0.1
+This document describes DAFE::Count::OutputRestruct version 0.0.1
 
 
 =head1 SYNOPSIS
 
-    use <MODULE NAME>;
+    use DAFE::Count::OutputRestruct;
 
-=for author to fill in:
-    Brief code example(s) here showing commonest usage(s).
-    This section will be as far as many users bother reading
-    so make it as educational and exeplary as possible.
+	# make a new object
+	my %args = ("out_dir" => $out_dir,
+				"new_out_dir" => $new_out_dir,
+				"ref_aref" => $ref_aref,
+				"sample_ref" => $sample_aref,
+				"perc_ids_aref" => $perc_ids_aref,
+				"htseq_file_prefix" => $htseq_file_prefix);
+	my $obj = DAFE::Count::OutputRestruct->new(\%args);
+	
+	# do the restructuring
+	$obj->restructure();
+	
+	# get one of parameters
+	$obj->get_param("out_dir");
+	
+	# set one of the parameters to something else
+	$obj->set_param("out_dir", $out_dir2);
   
   
 =head1 DESCRIPTION
 
-=for author to fill in:
-    Write a full description of the module and its features here.
-    Use subsections (=head2, =head3) as appropriate.
-
-
-=head1 DIAGNOSTICS
-
-=for author to fill in:
-    List every single error and warning message that the module can
-    generate (even the ones that will "never happen"), with a full
-    explanation of each problem, one or more likely causes, and any
-    suggested remedies.
-
-=over
-
-=item C<< Error message here, perhaps with %s placeholders >>
-
-[Description of error here]
-
-=item C<< Another error message here >>
-
-[Description of error here]
-
-[Et cetera, et cetera]
-
-=back
+In DAFEv1 I did the mapping to individual genomes.  In DAFEv2 I decided to
+combine all the genomes into a single mapping database.  This resolves the issue
+of a read mapping to multiple genomes.  In order to use the downstream scripts
+(ie edgeR_driver.pl) I have to restructure the output from DAFEv2 to look like
+the output from DAFEv1.  This object does that operation.
 
 
 =head1 CONFIGURATION AND ENVIRONMENT
-
-=for author to fill in:
-    A full explanation of any configuration system(s) used by the
-    module, including the names and locations of any configuration
-    files, and the meaning of any environment variables or properties
-    that can be set. These descriptions must also include details of any
-    configuration language used.
   
-<MODULE NAME> requires no configuration files or environment variables.
+DAFE::Count::OutputRestruct requires no configuration files or environment
+variables.
 
 
 =head1 DEPENDENCIES
-
-=for author to fill in:
-    A list of all the other modules that this module relies upon,
-    including any restrictions on versions, and an indication whether
-    the module is part of the standard Perl distribution, part of the
-    module's distribution, or must be installed separately. ]
 
 Carp
 Readonly
@@ -314,16 +296,12 @@ Log::Log4perl qw(:easy)
 Log::Log4perl::CommandLine qw(:all)
 MyX::Generic
 version; our $VERSION = qv('0.0.1')
+UtilSY qw(:all)
+Scalar::Util qw(openhandle)
+DataObj
 
 
 =head1 INCOMPATIBILITIES
-
-=for author to fill in:
-    A list of any modules that this module cannot be used in conjunction
-    with. This may be due to name conflicts in the interface, or
-    competition for system or program resources, or due to internal
-    limitations of Perl (for example, many modules that use source code
-    filters are mutually incompatible).
 
 None reported.
 
@@ -331,11 +309,15 @@ None reported.
 =head1 METHODS
 
 =over
-
-=for author to fill in:
-	A list of method names in the module
 	
 	new
+	get_param
+	set_param
+	restructure
+	_mkdir_structure
+	_reformat
+	_parse_file
+	_get_htseq_file
 
 =back
 
@@ -344,51 +326,117 @@ None reported.
 =head2 new
 
 	Title: new
-	Usage: <MODULE NAME>->new({
-				arg1 => $arg1,
-				arg2 => $arg2
+	Usage: DAFE::Count::OutputRestruct->new({
+				out_dir => $out_dir,
+				new_out_dir => $new_out_dir,
+				ref_aref => $ref_aref,
+				sample_ref => $sample_aref,
+				perc_ids_aref => $perc_ids_aref,
+				htseq_file_prefix => $htseq_file_prefix
 			});
-	Function: Build new <MODULE NAME>
-	Returns: <MODULE NAME>
-	Args: -arg1 => DESCRIPTION
-		  -arg2 => DESCRIPTION
+	Function: Build new DAFE::Count::OutputRestruct
+	Returns: DAFE::Count::OutputRestruct
+	Args: -out_dir => output dir with DAFEv2 output
+		  -new_out_dir => output dir to save DAFEv1 output
+		  -ref_aref => array ref with reference (ie genome) IDs
+		  -sample_aref => array ref with sample IDs
+		  -perc_ids_aref => array ref with percent identities
+		  -htseq_file_prefix => htseq file prefix
 	Throws: MyX::Generic::Undef::Param
 	Comments: NA
 	See Also: NA
 	
-=head2 get_arg1
+=head2 get_param
 
-	Title: get_arg1
-	Usage: $obj->get_arg1()
-	Function: Returns arg1
-	Returns: str
+	Title: get_param
+	Usage: $obj->get_param("p")
+	Function: Returns value of the named parameter
+	Returns: the parameter value (may be any type)
+	Args: -p => the parameter name (ie "out_dir")
+	Throws: NA
+	Comments: I use a DataObj to store the parameters
+	See Also: DataObj
+	
+=head2 set_param
+
+	Title: set_param
+	Usage: $obj->set_param("name", $value)
+	Function: sets the value of the named parameter
+	Returns: 1 on success
+	Args: -name => the string name of the value (ie "out_dir")
+	      -value => the value of the parameter to set
+	Throws: MyX::Generic::Undef::Param
+	Comments: NA
+	See Also: DataObj
+
+=head2 restructure
+
+	Title: restructure
+	Usage: $obj->restructure()
+	Function: Restructure the DAFEv2 output to look like DAFEv1 output
+	Returns: 1 on success
+	Args: NA
+	Throws: NA
+	Comments: The DAFEv2 output is stored in a directory structure where each
+	          sample has a directory and inside there are the bam and
+			  htseq-count files.  After this function is executed that output
+			  will have the same format as DAFEv1.  In DAFEv1 under the root
+			  output directory each genome has a directory.  Inside each genome
+			  directory is a directory for each sample.  Inside each sample
+			  directory are the htseq-count files representing the number of
+			  reads for the given genome-sample pair that are mapped.  Note that
+			  the bam files are not included in this restucturing (only the
+			  htseq-count files).  The user may elect to remove the bam files
+			  anyway as they take a lot of memory.
+	See Also: NA
+	
+=head2 _mkdir_structure
+
+	Title: _mkdir_structure
+	Usage: $obj->_mkdir_structure()
+	Function: Make the directories in the DAFEv1 format
+	Returns: 1 on success
+	Args: NA
+	Throws: NA
+	Comments: This runs the system mkdir command
+	See Also: NA
+	
+=head2 _reformat
+
+	Title: _reformat
+	Usage: $obj->_reformat()
+	Function: reformats the htseq-count files
+	Returns: 1 on success
 	Args: NA
 	Throws: NA
 	Comments: NA
 	See Also: NA
 	
-=head2 set_arg1
+=head2 _parse_file
 
-	Title: set_arg1
-	Usage: $obj->set_arg1($arg1)
-	Function: sets the arg1 value
+	Title: _parse_file
+	Usage: _parse_file(...)
+	Function: parses the DAFEv2 htseq-count files and prints the corresponding
+	          DAFEv1 htseq-count files
 	Returns: 1 on success
-	Args: -arg1 => DESCRIPTION
-	Throws: MyX::Generic::Undef::Param
+	Args: NA
+	Throws: NA
+	Comments: NA
+	See Also: NA
+	
+=head2 _get_htseq_file
+
+	Title: _get_htseq_file
+	Usage: _get_htseq_file()
+	Function: compiles the htseq-count file name and path
+	Returns: 1 on success
+	Args: NA
+	Throws: NA
 	Comments: NA
 	See Also: NA
 
 
 =head1 BUGS AND LIMITATIONS
-
-=for author to fill in:
-    A list of known problems with the module, together with some
-    indication Whether they are likely to be fixed in an upcoming
-    release. Also a list of restrictions on the features the module
-    does provide: data types that cannot be handled, performance issues
-    and the circumstances in which they may arise, practical
-    limitations on the size of data sets, special cases that are not
-    (yet) handled, etc.
 
 No bugs have been reported.
 
@@ -397,10 +445,6 @@ C<bug-<RT NAME>@rt.cpan.org>, or through the web interface at
 L<http://rt.cpan.org>.
 
 =head1 TO DO
-
-= for author to fill in:
-	Include a list of features and/or tasks that have yet to be
-	implemented in this object.
 
 None
 
