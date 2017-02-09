@@ -160,8 +160,11 @@ sub reformat_output_structure {
     # count files
     
     # create the reformated output directory
-    my $out_dir_reform = $out_dir . "_reformated/";
-    `mkdir $out_dir_reform`;
+    my $tmp_out_dir = $out_dir;
+    $tmp_out_dir =~ s/\/$//;
+    
+    my $out_dir_reform = $tmp_out_dir . "_reformated/";
+    `mkdir $out_dir_reform` if ( ! -d $out_dir_reform );
     
     # get the list of samples and references (ie genomes)
     my ($ref_aref, $sample_aref);
