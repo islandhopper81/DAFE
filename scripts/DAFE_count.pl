@@ -20,6 +20,7 @@ use IPC::Cmd qw(can_run run);
 use Data::Dumper;
 use List::Util qw(min);
 use FindBin qw($Bin);
+use DAFE::Count::OutputRestruct;
 
 # Subroutines #
 sub check_params;
@@ -133,6 +134,11 @@ while ( stall($lsf_job_name) ) {
 # check the output for error.  correct if possible
 check_output_files();
 
+# reformat the output to look like the old output structure with a directory
+# for each genome and inside that directory and directory for each sample with
+# count files
+reformat_output_structure();
+
 # make the gene count tables for each genome
 make_gene_count_tbls();
 
@@ -148,6 +154,46 @@ $logger->info("COMPLETE!!");
 ########
 # Subs #
 ########
+sub reformat_output_structure {
+    # reformat the output to look like the old output structure with a directory
+    # for each genome and inside that directory and directory for each sample with
+    # count files
+    
+    # create the reformated output directory
+    my $out_dir_reform = $out_dir . "_reformated/";
+    `mkdir $out_dir_reform`;
+    
+    # get the list of samples and references (ie genomes)
+    my ($ref_aref, $sample_aref);
+    if ( defined $pairs_file and -s $pairs_file ) {
+        ($ref_aref, $sample_aref) = get_pairs($pairs_file);
+    }
+    else {
+        # this is actually the standard way where everything in the
+        # ref_names_file and sample_names_file is ran
+        $ref_aref = get_names($ref_names_file);
+        $sample_aref = get_names($sample_names_file);
+    }
+    
+    # get a list of all the percent identies
+    # NOTE: $perc_ids_aref does not include the smallest value
+    #       (ie $min_perc_id) so I make a temporary aref and add back
+    #       $min_perc_id.
+    my $tmp_perc_ids_aref = [($min_perc_id), @{$perc_ids_aref}];
+    
+    # make the OutputRestruct object
+    my %args = {"out_dir" => $out_dir,
+                "new_out_dir" => $out_dir_reform,
+                "ref_aref" => $ref_aref,
+                "sample_aref" => $sample_aref,
+                "perc_ids_aref" => $tmp_perc_ids_aref,
+                "htseq_file_prefix" => $htseq_file_prefix};
+    my $output_restruct = DAFE::Count::OutputRestruct->new(\%args);
+    $output_restruct->restructure();
+    
+    return 1;
+}
+
 sub make_gene_count_tbls {
     # this subroutine makes a table for each reference (ie genome) of the
     # counts for each genomic feature (ie gene) across each of the samples
@@ -297,7 +343,6 @@ sub check_output_files {
 
     
     # if the pairs file is provided use that to check the output
-    my $first_flag = 1;  # to help me not remove the lowest perc_id bam file
     if ( defined $pairs_file and -s $pairs_file ) {
         ($ref_aref, $sample_aref) = get_pairs($pairs_file);
         my $len = scalar @{$ref_aref};

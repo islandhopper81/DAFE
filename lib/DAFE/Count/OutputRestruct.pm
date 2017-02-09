@@ -1,4 +1,4 @@
-package <MODULE NAME>;
+package DAFE::Count::OutputRestruct;
 
 use warnings;
 use strict;
@@ -11,6 +11,8 @@ use Log::Log4perl::CommandLine qw(:all);
 use MyX::Generic;
 use UtilSY qw(:all);
 use version; our $VERSION = qv('0.0.1');
+use Scalar::Util qw(openhandle);
+use DataObj;
 
 # set up the logging environment
 my $logger = get_logger();
@@ -18,24 +20,29 @@ my $logger = get_logger();
 {
 	# Usage statement
 	Readonly my $NEW_USAGE => q{ new( {
-		arg1 => ,
-		arg2 => ,
+		out_dir => ,
+		new_out_dir => ,
+		ref_aref => ,
+		sample_aref => ,
+		perc_ids_aref => ,
+		htseq_file_prefix => ,
 	})};
 
 	# Attributes #
-	my %arg1_of;
-	my %arg2_of;
+	my %params_of;
 	
 	# Getters #
-	sub get_arg1;
-	sub get_arg2;
+	sub get_param;
 
 	# Setters #
-	sub set_arg1;
-	sub set_arg2;
+	sub set_param;
 
 	# Others #
-
+	sub restructure;
+	sub _mkdir_structure;
+	sub _reformat;
+	sub _parse_file;
+	sub _get_htseq_file;
 
 
 	###############
@@ -50,8 +57,12 @@ my $logger = get_logger();
 
 		# Make sure the required parameters are defined
 		if ( any {!defined $_}
-				$arg_href->{arg1},
-				$arg_href->{arg2},
+				$arg_href->{out_dir},
+				$arg_href->{new_out_dir},
+				$arg_href->{ref_aref},
+				$arg_href->{sample_aref},
+				$arg_href->{perc_ids_aref},
+				$arg_href->{htseq_file_prefix},
 			) {
 			MyX::Generic::Undef::Param->throw(
 				error => 'Undefined parameter value',
@@ -63,6 +74,15 @@ my $logger = get_logger();
 		my $new_obj = bless \do{my $anon_scalar}, $class;
 
 		# Set Attributes
+		my $data_obj = DataObj->new();
+		$data_obj->set_feature("out_dir", $arg_href->{out_dir});
+		$data_obj->set_feature("new_out_dir", $arg_href->{new_out_dir});
+		$data_obj->set_feature("ref_aref", $arg_href->{ref_aref});
+		$data_obj->set_feature("sample_aref", $arg_href->{sample_aref});
+		$data_obj->set_feature("perc_ids_aref", $arg_href->{perc_ids_aref});
+		$data_obj->set_feature("htseq_file_prefix",
+							   $arg_href->{htseq_file_prefix});
+		$params_of{ident $new_obj} = $data_obj;
 
 		return $new_obj;
 	}
@@ -70,25 +90,19 @@ my $logger = get_logger();
 	###########
 	# Getters #
 	###########
-	sub get_arg1 {
-		my ($self) = @_;
+	sub get_param {
+		my ($self, $name) = @_;
 		
-		return $arg1_of{ident $self};
+		return $params_of{ident $self}->get_feature($name);
 	}
 
 	###########
 	# Setters #
 	###########
-	sub set_arg1 {
-		my ($self, $arg1) = @_;
+	sub set_param {
+		my ($self, $name, $val) = @_;
 		
-		# check if the parameter is defined
-		check_defined($arg1, "arg1");
-        
-        # check if the file exists and is non empty
-		#check_file($arg1);
-		
-		$arg1_of{ident $self} = $arg1;
+		$params_of{ident $self}->set_feature($name, $val);
 		
 		return 1;
 	}
@@ -96,6 +110,127 @@ my $logger = get_logger();
 	##########
 	# Others #
 	##########
+	sub restructure {
+		my ($self) = @_;
+		
+		$logger->debug("Starting Restructuring");
+		
+		# create the new directory stucture
+		$self->_mkdir_structure();
+		
+		# reformat the output
+		$self->_reformat();
+	}
+	
+	sub _mkdir_structure {
+		my ($self) = @_;
+		
+		$logger->debug("Making new dir structure");
+		
+		my $new_out_dir = $self->get_param("new_out_dir");
+		my $ref_aref = $self->get_param("ref_aref");
+		my $sample_aref = $self->get_param("sample_aref");
+		
+		# create the reformated output directory structure
+		foreach my $ref ( @{$ref_aref} ) {
+			foreach my $sample ( @{$sample_aref} ) {
+				`mkdir -p $new_out_dir/$ref/$sample/`;
+			}
+		}
+		
+		return 1;
+	}
+	
+	sub _reformat {
+		my ($self) = @_;
+		
+		$logger->debug("Starting the reforamtting");
+		
+		my $sample_aref = $self->get_param("sample_aref");
+		my $ref_aref = $self->get_param("ref_aref");
+		my $perc_ids_aref = $self->get_param("perc_ids_aref");
+		my $out_dir = $self->get_param("out_dir");
+		my $new_out_dir = $self->get_param("new_out_dir");
+		my $htseq_file_prefix = $self->get_param("htseq_file_prefix");
+		
+		foreach my $sample ( @{$sample_aref} ) {
+			foreach my $perc_id ( @{$perc_ids_aref} ) {
+				my $htseq_file = _get_htseq_file($out_dir, $sample,
+												 $htseq_file_prefix, $perc_id);
+				
+				_parse_file($htseq_file, $new_out_dir, $sample,
+							$htseq_file_prefix, $perc_id);
+			}
+		}
+		
+		return 1;
+	}
+	
+	sub _parse_file {
+		my ($htseq_file, $new_out_dir, $sample,
+			$htseq_file_prefix, $perc_id) = @_;
+		
+		# open the file
+		open my $HTS, "<", $htseq_file or
+			$logger->logdie("Cannot open htseq file: $htseq_file");
+		
+		my $current_ref = "";
+		my $FH;  #output file handle
+		my $genome_id;
+		my $gene_id;
+		my $count;
+		my $new_file;
+		foreach my $line ( <$HTS> ) {
+			if ( $line =~ m/(\S+)-(\S+)\t(\d+)/ ) {
+				$genome_id = $1;
+				$gene_id = $2;
+				$count = $3;
+				
+				# check the filehandle and open a new one if needed
+				if ( $genome_id ne $current_ref ) {
+					if ( openhandle($FH) ) {
+						close($FH);
+					}
+					
+					$new_file = "$new_out_dir/$genome_id/$sample/";
+					$new_file .= "$htseq_file_prefix\_id" . $perc_id . ".txt";
+					open $FH, ">", $new_file or
+						$logger->logdie("Cannot open file: $new_file");
+					$current_ref = $genome_id;
+				}
+				
+				# print the line
+				if ( $genome_id =~ m/^99/ ) {
+					# if the genome is one of the plate scrapes keep the
+					# genome id in the name because it is in the gff file
+					print $FH "$genome_id-$gene_id\t$count\n";
+				}
+				else {
+					print $FH "$gene_id\t$count\n";
+				}
+			}
+			else {
+				$logger->warn("Bad line match: $line");
+			}
+		}
+		
+		return 1;
+	}
+	
+	sub _get_htseq_file {
+		my ($out_dir, $s, $h, $p) = @_;
+		
+		my $htseq_file = "$out_dir/$s/$h\_id" . $p . ".txt";
+		
+		# warn if the file doesn't exist
+		if ( ! -s $htseq_file ) {
+			$logger->warn("$htseq_file not found or empty");
+		}
+		
+		$logger->debug("htseq_file: $htseq_file");
+		
+		return($htseq_file);
+	}
 }
 
 1; # Magic true value required at end of module
