@@ -789,7 +789,8 @@ sub get_mapping_command {
         $command .= "outputunmapped=f ";
         $command .= "sam=1.3 ";
         $command .= "nodisk=t ";
-        $command .= "threads=$t; ";
+        $command .= "threads=$t ";
+        $command .= "usemodulo=t; ";
         
         if ( defined $cov_stat_file_name and length $cov_stat_file_name > 0 ) {
             # an option to make a coverage stats output file in addition

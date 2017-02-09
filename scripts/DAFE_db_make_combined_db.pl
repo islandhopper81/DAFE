@@ -202,7 +202,13 @@ sub make_bbmap_db {
 	
 	my $out_dir = dirname($dafe_db_dir);
 	
-	`bbmap.sh path="$out_dir/$combined_db_name/" ref=$combined_fasta`;
+	my $cmd = 	"bbmap.sh " .
+				"path=$out_dir/$combined_db_name/ " .
+				"ref=$combined_fasta " .
+				"usemodulo=t";
+	
+	$logger->info("Running command: $cmd");
+	`$cmd`;
 	
 	return 1;
 }
