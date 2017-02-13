@@ -35,46 +35,30 @@ opt = getopt(params)
 # Functions #
 #############
 
-get_colors = function(meta, palette) {
-  my_colors = data.frame(matrix(nrow = nrow(meta)))
-  i = 1
-  for (name_i in 1:length(names(meta))) {
-    vals = unique(meta[,name_i])
-    vals = vals[!is.na(vals)]
-    my_n = length(vals)
-    my_s = i
-    name = names(meta)[name_i]
-    
-    #print(paste("name: ", name, sep=""))
-    #print(paste("my_n: ", my_n, sep=""))
-    #print(paste("my_s: ", my_s, sep=""))
-    
-    col_vec = get_color_vec(palette, n=my_n, s=my_s)
-    names(col_vec) = vals
-    
-    merged = merge(col_vec, meta, by.x="row.names", by.y=names(meta)[name_i], 
-                   all.y=T, sort=F)
-    my_colors[,names(meta)[name_i]] = as.character(merged$x)
-    
-    i = my_n + i
+get_colors = function(meta, pal = "set1", columns) {
+  if (length(columns) == 0 ) {
+    columns = names(meta)
   }
+  uniq_vals = levels(unique(melt(meta, measure.vars = columns)$value))
+  col_count = length(uniq_vals)
+  col_count
   
-  my_colors = my_colors[2:(ncol(meta) + 1)]
-  my_colors_col_names = names(my_colors)
-  my_colors = matrix(unlist(my_colors), ncol=ncol(meta), nrow=nrow(meta))
-  colnames(my_colors) = my_colors_col_names
-  rownames(my_colors) = row.names(meta)
+  uniq_cols = brewer.pal(col_count, pal)
   
-  return(my_colors)
-}
-get_color_vec = function(palette, n, s) {
-  # for a special case when n < 3 to avoid an error/warning
-  if ( n+s-1 < 3 ){
-    color_vec = brewer.pal(3, palette)
-  } else {
-    color_vec = brewer.pal(n+s-1, palette)
+  df = data.frame(val = uniq_vals, col = uniq_cols)
+  
+  
+  col_df = data.frame(matrix(nrow=nrow(meta), ncol=ncol(meta)))
+  names(col_df) = names(meta)
+  row.names(col_df) = row.names(meta)
+  for ( c in colnames(meta) ) {
+    cols = droplevels(df$col[match(meta[,c], df$val)])
+    col_df[,c] = cols
   }
-  return(color_vec[s:(n+s-1)])
+  cols = col_df
+  colnames(cols) = sapply(colnames(cols), .simpleCap)
+  
+  return(as.matrix(cols))
 }
 .simpleCap <- function(x) {
   s <- strsplit(x, " ")[[1]]
@@ -104,7 +88,7 @@ colnames(my_mat) = row.names(counts)
 my_mat = apply(my_mat, 2, rev)
 my_mat = log10(my_mat + 1)
 
-cols = get_colors(meta, "Set1")
+cols = get_colors(meta, "Set1", columns=c("genotype", "fraction", "age"))
 colnames(cols) = sapply(colnames(cols), .simpleCap)
 
 legend_names = unique(unlist(lapply(meta, unique)))
