@@ -546,7 +546,7 @@ sub bash_stall {
     
     $logger->debug("Running stall command: $command");
     
-    `$command`;
+    system($command);
     
     $logger->info("Stall finished.  All $job_name jobs are complete");
     
