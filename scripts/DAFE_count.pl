@@ -575,7 +575,7 @@ sub submit_batch {
 sub get_jobs {
     my @jobs = (); 
     my ($ref_aref, $sample_aref);
-    my $command = get_bsub_command() . "\"";
+    my $command = get_bsub_command() . "\'";
     my $batch_count = 1;
     
     $sample_aref = get_names($sample_names_file);
@@ -585,11 +585,11 @@ sub get_jobs {
         
         if ( $batch_count == $node_batch_count ) {
             # end the command and add it to the jobs array
-            $command .= $tmp_command . "\";";
+            $command .= $tmp_command . "\';";
             push @jobs, $command;
             
             # start a new command the bsub part and a quote
-            $command = get_bsub_command() . "\"";
+            $command = get_bsub_command() . "\'";
             $batch_count = 1;
         }
         else {
