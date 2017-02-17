@@ -566,7 +566,7 @@ sub submit_batch {
         
         my $command = shift @{$jobs_aref};
         $logger->info("Submitting command: $command");
-        `$command`;
+        system($command);
     }
     
     return 1;
