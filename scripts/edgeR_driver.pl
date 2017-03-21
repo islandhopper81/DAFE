@@ -33,12 +33,14 @@ my $man = 0;
 my $xml_file;
 my $yml_file; # Will hold the param file passed into the driver
 my $out_dir; #place to put the ordered ids and meta_file
+my $skip_agg = 0;
 
 # Read in variables from the command line
 GetOptions ('man'  => \$man,
             'help' => \$help,
             'xml_file|x=s' => \$xml_file,
             'yml_file|y=s' => \$yml_file,
+            'no_agg'       => \$skip_agg,
             ) || die("There was an error in the command line arguements\n");
 
 # Use Pod usage for the Manual and Help pages
@@ -71,7 +73,7 @@ elsif (defined $yml_file) {
     #my $param_href = find_param_values_from_txt_file($yml_file);
     $param_obj = Param_handler->new( { yml_file => $yml_file } );
 }
-#$param_obj->set_Rsource_dir( "../R_lib");
+
 $logger->info( "Checking the edgeR parameters" );
 $param_obj->check_edger_params();
 
@@ -81,22 +83,31 @@ $out_dir = $param_obj->get_out_dir();
 my $ids_out = $out_dir . "/ordered_ids.txt";
 my $meta_out = $out_dir . "/ordered_metafile.txt";
 
-$logger->info( "Creation of an ordered metadata file" );
-$logger->debug( $meta_out );
-$justify_obj->spew_trimmed_ordered_meta_file( $meta_out );
+my $aggregate_obj;
 
-$logger->info( "Creation of an ordered id file using the tree" );
-$logger->debug( $ids_out );
-$justify_obj->spew_ordered_ids( $ids_out );
-
-# Need to then perform the aggregation of the count data
-$logger->info( "Creation of an aggregate object, and aggregation of all the count data" );
-my $aggregate_obj = Aggregate->new( $param_obj );
-my $ids_aref = $justify_obj->get_ordered_ids_aref(); # Gives ids in analysis
-#loop trough id's and perform the aggregation of the data
-foreach my $id ( @$ids_aref ) {
-    $logger->info( "Aggregation of $id" );
-    $aggregate_obj->aggregate($id);
+#This will skip the actual aggregation of the data because it is alredy done
+if ( $skip_agg ) {
+    $logger->info( "Creation of an ordered metadata file" );
+    $logger->debug( $meta_out );
+    $justify_obj->spew_trimmed_ordered_meta_file( $meta_out );
+    
+    $logger->info( "Creation of an ordered id file using the tree" );
+    $logger->debug( $ids_out );
+    $justify_obj->spew_ordered_ids( $ids_out );
+    
+    # Need to then perform the aggregation of the count data
+    $logger->info( "Creation of an aggregate object, and aggregation of all the count data" );
+    $aggregate_obj = Aggregate->new( $param_obj );
+    my $ids_aref = $justify_obj->get_ordered_ids_aref(); # Gives ids in analysis
+    #loop trough id's and perform the aggregation of the data
+    foreach my $id ( @$ids_aref ) {
+        $logger->info( "Aggregation of $id" );
+        $aggregate_obj->aggregate($id);
+    }
+}
+else {
+    $logger->info( "Creation of an aggregate object, but no aggregation step" );
+    $aggregate_obj = Aggregate->new( $param_obj );
 }
 
 $logger->info( "Getting rid of the single quotes in the temp yaml passed to edgeR" );
@@ -210,11 +221,13 @@ use File::Basename
     
 =head1 SYNOPSIS
 
-    perl edgeR_driver.pl -{y|x}
+    perl edgeR_driver.pl -{y|x} [-no_agg]
     
     -yml_file | y =>    This is a yaml parameter file that contains all the     parameters needed for the analysis
     
     -xml_file | x =>    This is a xml parameter file that contains all the parameters needed for the analysis
+    
+    -no_agg       =>    Optional flag that will skip the memory intensive aggregation step if the file has already been created by previous runs.
     
     ATTENTION: You must pass either a yaml or xml file. For more information about passing in filter parameters check DaFilter.pm documentation
     
