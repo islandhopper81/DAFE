@@ -119,7 +119,7 @@ get_grp_name_ord = function(grp_df, order_by_grp_groups=FALSE, grp_metadata_tbl,
   return(ret)
 }
 
-make_figure = function(mat, file) {
+make_figure = function(mat, file, xlabs = F) {
   
   df = get_grp_df(mat)
   
@@ -148,13 +148,16 @@ make_figure = function(mat, file) {
     scale_y_discrete(limits=genome_order) +
     xlab("KOGs") + 
     theme(axis.text.y = element_blank(),
-          axis.text.x = element_blank(),
-          axis.ticks.x = element_blank(),
           axis.ticks.y = element_blank(),
           axis.title.y = element_blank(),
           legend.title = element_text(size=22),
           legend.text = element_text(size=20),
           panel.background = element_rect(fill="white"))
+
+	if ( xlabs == F ) {
+		p3 + theme(axis.text.x = element_blank(),
+				   axis.ticks.x = element_blank())
+	}
   
   png(file, units="in", width=5, height=5, res=300)
   print(p3, vp=viewport())
