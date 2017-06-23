@@ -39,7 +39,7 @@ run_edgeR_grps = function(params_obj) {
     
     # filter -- by min_sample_count and min_sample_cpm
     keep = rowSums(cpm(dge) > params_obj$min_sample_cpm) > params_obj$min_sample_count
-    if ( length(keep) == 0 | all(is.na(keep)) ) {
+    if ( length(keep) == 0 | all(is.na(keep)) | sum(keep) == 0) {
       # no genes in this genome pass the filter
       print("FINISH EARLY -- Didn't pass filter")
       
