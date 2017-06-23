@@ -97,9 +97,9 @@ get_test_groups = function(params) {
   if ( ! (setequal(unique(test_groups), params$test)) ) {
     message = paste("ERROR: test value params don't match values in test_col_name",
                     paste("test_col_name values:", 
-                          paste(test_groups, collapse=",")),
+                    paste(unique(test_groups), collapse=",")),
                     paste("test parameter values:",
-                          paste(params$test, collapse=",")),
+                    paste(params$test, collapse=",")),
                     sep="\n",
                     collapse="")
     
