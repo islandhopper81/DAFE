@@ -25,6 +25,7 @@ use Log::Log4perl qw(:easy);
 use Log::Log4perl::CommandLine qw(:all);
 use Cwd qw(abs_path);
 use File::Basename;
+use UtilSY qw(:all);;
 
 
 # My Variables
@@ -40,7 +41,7 @@ GetOptions ('man'  => \$man,
             'help' => \$help,
             'xml_file|x=s' => \$xml_file,
             'yml_file|y=s' => \$yml_file,
-            'no_agg'       => \$skip_agg,
+            'skip_agg'       => \$skip_agg,
             ) || die("There was an error in the command line arguements\n");
 
 # Use Pod usage for the Manual and Help pages
@@ -60,7 +61,15 @@ my $logger = get_logger();
 
 # MAIN #
 
-my $param_obj;
+# check some parmaeters
+if ( ! defined $skip_agg ) {
+	$skip_agg = 0; # FALSE
+}
+else {
+	$skip_agg = to_bool($skip_agg);
+}
+
+my$param_obj;
 #Create a Param_handler object and check the edgeR Params. Put this in the param hendler
 if (defined $xml_file) {
     $logger->info( "Creating a Param object with an xml file" );
@@ -86,7 +95,7 @@ my $meta_out = $out_dir . "/ordered_metafile.txt";
 my $aggregate_obj;
 
 #This will skip the actual aggregation of the data because it is alredy done
-if ( $skip_agg ) {
+if ( ! $skip_agg ) {
     $logger->info( "Creation of an ordered metadata file" );
     $logger->debug( $meta_out );
     $justify_obj->spew_trimmed_ordered_meta_file( $meta_out );
