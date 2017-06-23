@@ -30,12 +30,28 @@ library(cluster) # for daisy funciton for clustering COGs
 # When you call this script the args are named like --verbose or -v
 params = matrix(c(
   "matrix_file", "m", 1, "character",
-  "out_file", "o", 1, "character"
+  "out_file_pre", "o", 1, "character",
+  "show_xlabs", "x", 0, "logical",
+	"png", "n", 0, "logical"
 ), byrow=TRUE, ncol=4)
 opt = getopt(params)
 matrix_file = opt$matrix_file
-out_file = opt$out_file
+out_file_pre = opt$out_file_pre
 
+print(paste("opt$show_xlabs: ", opt$show_xlabs, sep=""))
+if ( ! is.null(opt$show_xlabs) ) {
+	show_xlabs = T
+	print("setting show_xlabs to T (TRUE)")
+} else {
+	show_xlabs = F
+}
+print(paste("show_xlabs: ", show_xlabs, sep=""))
+
+if ( ! is.null(opt$png) ) {
+	png = T
+} else {
+	png = F
+}
 
 #############
 # Functions #
@@ -119,7 +135,7 @@ get_grp_name_ord = function(grp_df, order_by_grp_groups=FALSE, grp_metadata_tbl,
   return(ret)
 }
 
-make_figure = function(mat, file, xlabs = F) {
+make_figure = function(mat, file_pre, show_xlabs = F, png=F) {
   
   df = get_grp_df(mat)
   
@@ -154,14 +170,26 @@ make_figure = function(mat, file, xlabs = F) {
           legend.text = element_text(size=20),
           panel.background = element_rect(fill="white"))
 
-	if ( xlabs == F ) {
-		p3 + theme(axis.text.x = element_blank(),
+	if ( show_xlabs == F ) {
+		p3 = p3 + theme(axis.text.x = element_blank(),
 				   axis.ticks.x = element_blank())
 	}
   
-  png(file, units="in", width=5, height=5, res=300)
-  print(p3, vp=viewport())
-  dev.off()
+	file = paste(file_pre, ".pdf", sep="")
+	pdf(file, width=5, height=5)
+	print(p3, vp=viewport())
+	dev.off()
+
+	# this code is not really being used right now.  It was old, but I want to keep it
+	# because it will come in handy if I end up needing the high res figures that can
+	# only be made in the png format.
+	if ( png == T ) {
+		file = paste(file_pre, ".png", sep="")
+#		png(file, units = "in", res = 300, width = 5, height = 5)
+		png(file, units="in", width=5, height=5, res=300)
+		print(p3, vp=viewport())
+		dev.off()
+	}
 }
 
 ########
@@ -178,6 +206,6 @@ colnames(mat) = tbl[1,2:ncol(tbl)]
 
 # transpose it (so that rows are genomes, cols are functional groups)
 mat = t(mat)
-make_figure(mat, out_file)
+make_figure(mat, out_file_pre, show_xlabs, png=png)
 
 
