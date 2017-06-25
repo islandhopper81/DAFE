@@ -814,8 +814,8 @@ ref_meta_cols
 	  
 	  # now test to see if all of the values in the params file test parameter
 	  # are found at least one time in the metadata_vals
-	  my $set_diff = $test_names - $metadata_vals;
-	  if ( $set_diff->size() > 0 ) {
+	  my $set_diff =  $metadata_vals - $test_names;
+	  if ( $set_diff->size() != $metadata_vals->size() - $test_names->size() ) {
 		MyX::Generic::BadValue->throw(
 		  error => "Not all test parameter values are in the sample metadata",
 		 );
