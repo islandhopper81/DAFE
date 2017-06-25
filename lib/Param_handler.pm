@@ -820,24 +820,6 @@ ref_meta_cols
 		  error => "Not all test parameter values are in the sample metadata",
 		 );
 	  }
-	  
-#      foreach my $test_names (@split_test_names) {
-#		if ( $test_names =~ /[a-z]/i ) {
-#		  $total_names++;
-#		  foreach my $line_aref (@slurped_meta_file) {
-#			if ( @$line_aref[$col_num] eq $test_names ) {
-#			  $found_names++;
-#			  last;
-#			}
-#		  }
-#		}
-#      }
-#      if ($total_names != $found_names) {
-#		MyX::Generic::BadValue->throw(
-#						  error => "test names do not match values under the test_col_name in the metaG_meta_file",
-#						  value => $test,
-#						 );
-#      }
     }#elsif
     return 1;
   }
