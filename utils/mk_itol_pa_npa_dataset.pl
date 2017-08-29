@@ -74,7 +74,7 @@ print $OUT "COLOR\t#FFFFFF\n";
 print $OUT "COLOR_BRANCHES\t0\n";
 print $OUT "LEGEND_TITLE\tDataset_legend\n";
 print $OUT "LEGEND_SHAPES\t1\t1\t1\n";
-print $OUT "LEGEND_COLORS\t#009900\t#6600CC\t663300\n";
+print $OUT "LEGEND_COLORS\t#009900\t#6600CC\ti#663300\n";
 print $OUT "LEGEND_LABELS\tPA\tNPA\tSoil\n";
 print $OUT "DATA\n";
 
