@@ -177,10 +177,16 @@ summerize_da_direction = function(exact_test, da_vec,
 # edgeR module must be sourced to use the function plotSmear
 make_smear_plot = function(exact_test, da_exact, dge, output_file = "smear.tiff",
                            write_bool = T) {
-  datags_exact = rownames(dge)[as.logical(da_exact)]
-  if ( write_bool == T ) { tiff(output_file) }
-  plotSmear(exact_test, de.tags=datags_exact)
-  if ( write_bool == T ) { dev.off() }
+  tryCatch({
+  	datags_exact = rownames(dge)[as.logical(da_exact)]
+  	if ( write_bool == T ) { tiff(output_file) }
+  	plotSmear(exact_test, de.tags=datags_exact)
+  	if ( write_bool == T ) { dev.off() }
+  }, error = function(err) {
+	print("Cannot make smear plot")
+	print(paste(err$message))
+	return(NA)
+  })
 }
 
 ### Gets the count table from each group 
