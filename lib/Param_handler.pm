@@ -816,6 +816,10 @@ ref_meta_cols
 	  # are found at least one time in the metadata_vals
 	  my $set_diff =  $metadata_vals - $test_names;
 	  if ( $set_diff->size() != $metadata_vals->size() - $test_names->size() ) {
+		print "set_diff size: " . $set_diff->size() . "\n";
+		print "metadata_vals size: " . $metadata_vals->size() . "\n";
+		print "test_names size: " . $test_names->size() . "\n";
+		print "set_diff: " . $set_diff . "\n";
 		MyX::Generic::BadValue->throw(
 		  error => "Not all test parameter values are in the sample metadata",
 		 );
