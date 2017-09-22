@@ -29,6 +29,7 @@ my $logger = get_logger();
 	# Setters #
 
 	# Others #
+	sub calc_marker_abund;
 	sub calc_abund_est;
 	sub calc_abund_est_v2;
 	sub _mean;
@@ -73,6 +74,26 @@ my $logger = get_logger();
 	##########
 	# Others #
 	##########
+	sub calc_marker_abund {
+		my ($self, $tbl, $method) = @_;
+
+		if ( ! is_defined($method) ) {
+			$method = "mean";
+		}
+
+		my @gene_avgs = ();
+		foreach my $col ( @{$tbl->get_col_names()} ) {
+			if ( $method eq "median" ) {
+				push @gene_avgs, $self->_median($tbl->get_col($col));
+			}
+			else {
+				push @gene_avgs, $self->_mean($tbl->get_col($col));
+			}
+		}
+
+		return(\@gene_avgs);
+	}
+
 	sub calc_abund_est {
 		my ($self, $tbl, $method) = @_;
 		
@@ -224,6 +245,7 @@ None reported.
 =over
 	
 	new
+	calc_marker_abund
 	calc_abund_est
 	calc_abund_est_v2
 	_mean
@@ -243,6 +265,22 @@ None reported.
 	Throws: MyX::Generic::Undef::Param
 	Comments: NA
 	See Also: NA
+
+=head2 calc_marker_abund
+
+	Title: calc_marker_abund
+	Usage: $obj->calc_marker_abund($tbl, $method)
+	Function: Calculates the mean/median abudance for each sample
+	Returns: aref
+	Args: -tbl => Table object of counts (rows are markers, cols are samples)
+	Throws: MyX::Generic::Undef::Param
+	Comments: The table should have samples represented as columns and marker
+              genes as rows.  For example at cell, (1,2) there would be a number
+              representing the number of reads that map to marker gene 1 in
+              sample 2.
+
+			  Insetead of reducing the full count matrix for a table (ie genome)
+			  to a single value it returns a value for each sample (column).
 	
 =head2 calc_abund_est
 

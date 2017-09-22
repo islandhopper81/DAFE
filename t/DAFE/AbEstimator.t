@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 13;
+use Test::More tests => 15;
 use Test::Exception;
 use Test::Warn;
 use Log::Log4perl qw(:easy);
@@ -65,6 +65,11 @@ my $tbl2 = $tbl1->copy();
 my @new_row = (4,3,2,10);
 $tbl2->add_row("X", \@new_row);
 
+# tbl2
+# Z	1	2	3	4
+# Y	1	2	3	4
+# X	4	3	2	10
+
 # test calc_abund_est
 {
     
@@ -87,4 +92,12 @@ $tbl2->add_row("X", \@new_row);
     # test for median
     is( $obj->calc_abund_est_v2($tbl1, "median"), 2.5, "calc_abund_est(median)" );
     is( $obj->calc_abund_est_v2($tbl2, "median"), 3, "calc_abund_est(median)" );
+}
+
+# test calc_marker_abund
+{
+	my @ans1 = (1,2,3,4);
+	my @ans2 = (2,7/3,8/3,6);
+	is_deeply( $obj->calc_marker_abund($tbl1, "mean"), \@ans1, "calc_marker_abund(mean)" );
+	is_deeply( $obj->calc_marker_abund($tbl2, "mean"), \@ans2, "calc_marker_abund(mean)" );
 }
