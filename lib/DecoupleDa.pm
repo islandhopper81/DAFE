@@ -15,6 +15,7 @@ use XML::Simple qw(:strict);
 use Class::Std::Utils;
 use Scalar::Util::Numeric qw(isneg isint isfloat);
 use MyX::Generic;
+use Table;
 
 {
     #Attributes
@@ -88,13 +89,22 @@ use MyX::Generic;
         #create a slurped array 
         my @count_file_a = $count_file_obj->slurp(chomp=>1, split=>qr/\s/);
         my $slurped_annote_file = $annote_file_obj->slurp();
+		my $annote_file_tbl = Table->new();
+		$annote_file_tbl->load_from_file($annote_file);
+		my $grp_by_col = $param_obj->get_grp_genes_by();
         
         #go through each kog and check the DA Value
         foreach my $line ( @count_file_a ) {
             if ( $line->[1] eq "-2") {
-                if ( _check_negative_two($line->[0],$slurped_annote_file) == 0 ){
-                    $line->[1] = -3;
-                }
+                #if ( _check_negative_two($line->[0],$slurped_annote_file) == 0 ){
+                #    $line->[1] = -3;
+                #}
+
+				# I changed the function _check_neative_two due to a bug.
+				# see the funciton for more detials
+				if ( _check_negative_two($line->[0], $annote_file_tbl, $grp_by_col) == 0 ) {
+					$line->[1] = -3;
+				}
             }
         }
         _remake_da_with_decoupled(\@count_file_a, $count_file); #print decoupled info in old file
@@ -117,7 +127,7 @@ use MyX::Generic;
         return 1;
     }
     
-    sub _check_negative_two {
+    sub _check_negative_two_old {
         my ($grp_id, $slurped_annote_file) = @_;
         #check to see if the group id is in the genomes annotation file
         if ( $slurped_annote_file =~ qr/$grp_id/i ) {
@@ -127,6 +137,38 @@ use MyX::Generic;
             return 0;
         }
     }
+
+	sub _check_negative_two {
+		my ($grp_id, $annote_tbl, $grp_by_col) = @_;
+
+		# there was a bug in this function.  It was only looking for the $grp_id
+		# in the entire annotation file.  This would cause problems when the 
+		# grp_id was something like "A" as in the case when I do cog groups.
+		# So I changed the parameters so that a Table object is passed in which
+		# has all the data in the annotation file.  I check the correct column
+		# in the annotation file for any instances of grp_id.  If there are no
+		# instances then I return 0.
+		
+		# get the column of values in the annoation table
+		if ( $annote_tbl->has_col($grp_by_col) ) {
+			my @vals = $annote_tbl->get_col($grp_by_col);
+
+			foreach my $v ( @vals ) {
+				if ( $v eq $grp_id ) {
+					return 1;
+				}
+			}
+		}
+		else {
+			# throw some error
+			MyX::Generic::BadValue->throw(
+				error => "Cannot find column $grp_by_col in the annotation table"
+			);
+		}
+		
+
+		return 0;
+	}
     
     
     ### SETTERS ###
