@@ -17,6 +17,7 @@ use Scalar::Util::Numeric qw(isneg isint isfloat);
 use MyX::Generic;
 use Table;
 
+
 {
     #Attributes
     my %param_handler_obj;
@@ -32,7 +33,7 @@ use Table;
     sub manually_set_cnt_file_name_from_edger;
     
     sub get_param_handler;
-    sub get_count_file_name;
+	sub get_count_file_name;
     
     
     
@@ -88,10 +89,20 @@ use Table;
             
         #create a slurped array 
         my @count_file_a = $count_file_obj->slurp(chomp=>1, split=>qr/\s/);
-        my $slurped_annote_file = $annote_file_obj->slurp();
+        
+		#my $slurped_annote_file = $annote_file_obj->slurp();
 		my $annote_file_tbl = Table->new();
 		$annote_file_tbl->load_from_file($annote_file);
 		my $grp_by_col = $param_obj->get_grp_genes_by();
+		my %grp_vals = ();
+		my $grp_vals_aref;
+		if ( $annote_file_tbl->has_col($grp_by_col) ) {
+			$grp_vals_aref = $annote_file_tbl->get_col($grp_by_col);
+			foreach my $val ( @{$grp_vals_aref} ) {
+				$grp_vals{$val} = 1;
+			}
+		}
+		$annote_file_tbl->reset();
         
         #go through each kog and check the DA Value
         foreach my $line ( @count_file_a ) {
@@ -102,7 +113,13 @@ use Table;
 
 				# I changed the function _check_neative_two due to a bug.
 				# see the funciton for more detials
-				if ( _check_negative_two($line->[0], $annote_file_tbl, $grp_by_col) == 0 ) {
+				#if ( _check_negative_two($line->[0], $annote_file_tbl, $grp_by_col) == 0 ) {
+				#	$line->[1] = -3;
+				#}
+
+				# I am not not using the new _check_negatiave_two function
+				# because it was a memory hog
+				if ( ! defined $grp_vals{$line->[0]} ) {
 					$line->[1] = -3;
 				}
             }
@@ -148,12 +165,14 @@ use Table;
 		# has all the data in the annotation file.  I check the correct column
 		# in the annotation file for any instances of grp_id.  If there are no
 		# instances then I return 0.
+
+		# note: this function takes a ton of memory.  I don't use it anymore
 		
 		# get the column of values in the annoation table
 		if ( $annote_tbl->has_col($grp_by_col) ) {
-			my @vals = $annote_tbl->get_col($grp_by_col);
+			my $vals = $annote_tbl->get_col($grp_by_col);
 
-			foreach my $v ( @vals ) {
+			foreach my $v ( @{$vals} ) {
 				if ( $v eq $grp_id ) {
 					return 1;
 				}
@@ -183,11 +202,28 @@ use Table;
     
     sub _set_count_file_name {
         my ($self, $param_obj) = @_;
+
+		# get the test values.  These are used so that mutliple
+		# statistical tests can be ran on the same aggregated
+		# count file without overwritting previous statistical
+		# test outputs
+		my $test_str = $param_obj->get_test();
+		my $test1;
+		my $test2;
+		if ( $test_str =~ m/\["(.*)",\s*"(.*)"\]/ ) {
+			$test1 = $1;
+			$test2 = $2;
+		}
+		else {
+			croak("Cannot find the tests in the test string: $test_str");
+		}
         
         my $count_f_name = $param_obj->get_count_file_name();
         my $grp_genes_by = $param_obj->get_grp_genes_by();
         $count_f_name =~ s/\.txt//;
-        $count_f_name .= "_$grp_genes_by" . "_agg_da_vec.txt";
+        $count_f_name .= "_$grp_genes_by\_agg_";
+		$count_f_name .= "$test1\_v_$test2";
+		$count_f_name .= "_da_vec.txt";
         $count_file_names{ident $self} = $count_f_name;
         
         return 1;
