@@ -58,9 +58,14 @@ main = function() {
 	final_df = merge(meta, tmp_df, by.x="row.names", by.y="genome")
 
 	# make the figure
-	ggplot(final_df, aes(x=Source, y=value, col=variable)) +
+	ggplot(final_df, aes(x=Source, y=log10(value), col=variable)) +
 		geom_boxplot(outlier.size=0) + 
-		geom_point()
+		geom_point(position=position_jitterdodge(jitter.width=0.5), size=.5) +
+		ylab("Number of Enrichmed COGs (log10)") +
+		theme(axis.text = element_text(size=16),
+				axis.title = element_text(size=16),
+				legend.text = element_text(size=16),
+				 axis.text.x = element_text(angle = 60, hjust=1))
 	ggsave(opt$out)
 }
 
