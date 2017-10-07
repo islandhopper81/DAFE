@@ -81,7 +81,7 @@ foreach my $row ( @{$q_tbl->get_row_names()} ) {
 
 	while ( $seq = $in->get_next_seq() ) {
 		$logger->debug("Looking at seq; " . $seq->get_header());
-		if ( $seq->get_header() =~ m/$gene/i ) {
+		if ( $seq->get_header() =~ m/$gene[- ]/i ) {
 			$logger->debug("Writing seq: $genome/$gene");
 
 			# add the genome id to the header
