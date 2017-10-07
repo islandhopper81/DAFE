@@ -14,7 +14,7 @@ use UtilSY qw(:all);
 use Table;
 use File::Slurp;
 use Exporter qw( import );
-our @EXPORT_OK = qw(ids_to_names);
+our @EXPORT_OK = qw(ids_to_names get_enr_val get_enr_code);
 our %EXPORT_TAGS = (
     'all' => \@EXPORT_OK,
 );
@@ -30,6 +30,8 @@ my $logger = get_logger();
 	# NA -- this object is just a set of utility functions
 	
 	# Functions #
+	sub get_enr_code;
+	sub get_enr_val;
 	sub ids_to_names;
 
 
@@ -42,6 +44,49 @@ my $logger = get_logger();
 	#############
 	# Functions #
 	#############
+	sub get_enr_val {
+		my ($logFC, $fdr, $up, $dn) = @_;
+
+		# up is the factor that is up when logFC is positive
+		# dn is the factor that is down when logFC is negative
+		# so if I run the test BK, RZ then up == RZ and dn == BK
+
+		# this function will return one of three values:
+		# 1. $up -- enriched in $up
+		# 2. $dn -- enriched in $dn
+		# 3. NE -- not enriched
+		
+		my $code = get_enr_code($logFC, $fdr);
+    
+		if ( $code == 0 ) { 
+			return("NE");
+		}   
+		elsif ( $code == 1 ) { 
+			return($up);
+		}   
+		else {
+			return($dn);
+		}   
+	}
+
+	sub get_enr_code {
+		my ($logFC, $fdr) = @_;
+
+		# this function will return the code (ie 1,0,-1)
+		# which indicates the enrichment value
+		
+		if ($fdr > 0.05 ) {
+			return(0);
+		}
+
+		if ( $logFC > 0 ) {
+			return(1); # up
+		}
+		else {
+			return(-1); # down
+		}
+	}
+
 	sub ids_to_names {
 		my ($params_href) = @_;
 		
