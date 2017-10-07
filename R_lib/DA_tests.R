@@ -20,6 +20,9 @@ run_edgeR_grps = function(params_obj) {
     working_dir = paste(params_obj$working_root_dir, ref, sep="/")
     setwd(working_dir)
     #print(paste("getwd(): ", getwd()))
+
+	# create the output file prefix
+	outfile_prefix = get_out_file_prefix(params_obj)
     
     # read in the counts
     tbl = get_count_tbl(ref, params_obj)
@@ -44,7 +47,7 @@ run_edgeR_grps = function(params_obj) {
       print("FINISH EARLY -- Didn't pass filter")
       
       # print the da direction file (they will all be -2)
-      out_f = paste(params_obj$agg_count_file_prefix, "_da_vec.txt", sep="")
+      out_f = paste(outfile_prefix, "_da_vec.txt", sep="")
       write.table(da_vec, out_f, quote=F, col.names=F)
       
       # move on to the next genome
@@ -68,7 +71,7 @@ run_edgeR_grps = function(params_obj) {
       print("FINISH EARLY -- Cannot estimate dispersion")
       
       # print the da direction file (they will all be -2)
-      out_f = paste(params_obj$agg_count_file_prefix, "_da_vec.txt", sep="")
+      out_f = paste(outfile_prefix, "_da_vec.txt", sep="")
       write.table(da_vec, out_f, quote=F, col.names=F)
       
       # move on to the next genome
@@ -76,7 +79,7 @@ run_edgeR_grps = function(params_obj) {
     }
     
     # make the BCV plot
-    out_f = paste(params_obj$agg_count_file_prefix, "_BCV.tiff", sep="")
+    out_f = paste(outfile_prefix, "_BCV.tiff", sep="")
     tiff(out_f)
     plotBCV(dge.filt)
     dev.off()
@@ -88,21 +91,21 @@ run_edgeR_grps = function(params_obj) {
     tags = topTags(exact, n=nrow(tbl))
     
     # save the tables
-    out_f = paste(params_obj$agg_count_file_prefix, "_tags_data.txt", sep="")
+    out_f = paste(outfile_prefix, "_tags_data.txt", sep="")
     write.table(tags, out_f, quote=F)
     
     # summarize differential abundace directionality
-    out_f = paste(params_obj$agg_count_file_prefix, "_da_tbl.txt", sep="")
+    out_f = paste(outfile_prefix, "_da_tbl.txt", sep="")
     da = summerize_da_direction(exact, output_file = out_f)
     
     # write the da_vec file
-    out_f = paste(params_obj$agg_count_file_prefix, "_da_vec.txt", sep="")
+    out_f = paste(outfile_prefix, "_da_vec.txt", sep="")
     da_vec = get_da_vec(tags, da_vec)
     write.table(da_vec, out_f, quote=F, col.names=F)
     
     # Make smear plot
-    out_f = paste(params_obj$agg_count_file_prefix, "_smear.tiff", sep="")
-    make_smear_plot(exact, da, dge.filt, output_file = out_f)
+    #out_f = paste(outfile_prefix, "_smear.tiff", sep="")
+    #make_smear_plot(exact, da, dge.filt, output_file = out_f)
   }
 }
 
@@ -206,5 +209,20 @@ get_count_tbl = function(count_file, params_obj) {
   return(tbl)
 }
 
-
+### Creates the output file prefix
+# this prefix is used to create all the edgeR output files
+# it is the aggregated count file prefix and the test information
+# combined. This allows for multiple tests to be ran on the same
+# aggregated count file without overwriting the last test's output
+get_out_file_prefix = function(params_obj) {
+      out_f = paste(
+		params_obj$agg_count_file_prefix, 
+		"_",
+		params_obj$test[1],
+		"_v_",
+		params_obj$test[2],
+		sep="")
+	
+	return(out_f)
+}
 
