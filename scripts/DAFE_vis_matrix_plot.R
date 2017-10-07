@@ -175,21 +175,16 @@ make_figure = function(mat, file_pre, show_xlabs = F, png=F) {
 				   axis.ticks.x = element_blank())
 	}
   
-	file = paste(file_pre, ".pdf", sep="")
-	pdf(file, width=5, height=5)
-	print(p3, vp=viewport())
-	dev.off()
-
-	# this code is not really being used right now.  It was old, but I want to keep it
-	# because it will come in handy if I end up needing the high res figures that can
-	# only be made in the png format.
 	if ( png == T ) {
 		file = paste(file_pre, ".png", sep="")
 #		png(file, units = "in", res = 300, width = 5, height = 5)
 		png(file, units="in", width=5, height=5, res=300)
-		print(p3, vp=viewport())
-		dev.off()
+	} else {
+		file = paste(file_pre, ".pdf", sep="")
+		pdf(file, width = 5, height = 5)
 	}
+	print(p3, vp=viewport())
+	dev.off()
 }
 
 ########
