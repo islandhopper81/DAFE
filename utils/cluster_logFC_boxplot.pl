@@ -22,7 +22,6 @@ use DAFE::AbEstimator;
 use DAFE::Utils qw(:all);
 
 # Subroutines #
-sub _determine_enrichment;
 sub check_params;
 sub _is_defined;
 
@@ -72,7 +71,7 @@ foreach my $g ( @{$g_aref} ) {
 	if ( $tbl->has_row($cluster) ) {
 		$logFC = $tbl->get_value_at($cluster, "logFC");
 		my $fdr = $tbl->get_value_at($cluster, "FDR");
-		$enrichment = _determine_enrichment($logFC, $fdr, "RZ", "BK");
+		$enrichment = get_enr_val($logFC, $fdr, "RZ", "BK");
 	}
 	else {
 		$logFC = "NA";
@@ -98,30 +97,6 @@ ids_to_names({
 ########
 # Subs #
 ########
-sub _determine_enrichment {
-	my ($logFC, $fdr, $up, $dn) = @_;
-	
-	# up is the factor that is up when logFC is positive
-	# dn is the factor that is down when logFC is negative
-	# so if I run the test BK, RZ then up == RZ and dn == BK
-
-	# this function will return one of three values:
-	# 1. $up -- enriched in $up
-	# 2. $dn -- enriched in $dn
-	# 3. NE -- not enriched
-	
-	if ( $fdr > 0.05 ) {
-		return("NE");
-	}
-
-	if ( $logFC > 0 ) {
-		return($up);
-	}
-	else {
-		return($dn);
-	}
-}
-
 sub check_params {
 	# check for required variables
 	if ( ! defined $genomes_file) { 
