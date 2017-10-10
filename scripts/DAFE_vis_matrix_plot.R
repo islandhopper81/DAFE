@@ -168,11 +168,16 @@ make_figure = function(mat, file_pre, show_xlabs = F, png=F) {
           axis.title.y = element_blank(),
           legend.title = element_text(size=22),
           legend.text = element_text(size=20),
-          panel.background = element_rect(fill="white"))
+          panel.background = element_rect(fill="white"),
+		  panel.grid.major = element_blank(),
+		  panel.grid.minor = element_blank())
 
 	if ( show_xlabs == F ) {
 		p3 = p3 + theme(axis.text.x = element_blank(),
-				   axis.ticks.x = element_blank())
+				   axis.ticks.x = element_blank(),
+					panel.background = element_rect(file="white"),
+					panel.grid.major = element_blank(),
+					panel.grid.minor = element_blank())
 	}
   
 	if ( png == T ) {
