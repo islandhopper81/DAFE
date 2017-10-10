@@ -97,17 +97,24 @@ foreach my $g ( @{$g_aref} ) {
 	# 1. look at the tags file to set the values (ie 1,0,-1)
 	$logger->debug("Setting tag values");
 	$t_file = "$dafe_out/$g/$tags_file";
-	check_file($t_file);
+	
+	eval {
+		check_file($t_file);
 
-	$tags_tbl->load_from_file($t_file, " ");
-	foreach my $r ( @{$tags_tbl->get_row_names()} ) {
-		# if the output table doesn't have this feature just ignore it
-		if ( ! $out_tbl->has_row($r) ) {next;}
+		$tags_tbl->load_from_file($t_file, " ");
+		foreach my $r ( @{$tags_tbl->get_row_names()} ) {
+			# if the output table doesn't have this feature just ignore it
+			if ( ! $out_tbl->has_row($r) ) {next;}
 
-		$fdr = $tags_tbl->get_value_at($r, "FDR");
-		$logFC = $tags_tbl->get_value_at($r, "logFC");
-		$code = get_enr_code($logFC, $fdr);
-		$out_tbl->set_value_at($r, $g, $code);
+			$fdr = $tags_tbl->get_value_at($r, "FDR");
+			$logFC = $tags_tbl->get_value_at($r, "logFC");
+			$code = get_enr_code($logFC, $fdr);
+			$out_tbl->set_value_at($r, $g, $code);
+		}
+	};
+	# check for acceptable errors.  primarily when there is no tag file
+	if ( my $e = MyX::Generic::DoesNotExist::File->caught() ) {
+		$logger->warn("No tags file for genome: $g");
 	}
 
 	# 2. now set the -2 values (the ones that cannot be measured
