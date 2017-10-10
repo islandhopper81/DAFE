@@ -14,7 +14,7 @@ use UtilSY qw(:all);
 use Table;
 use File::Slurp;
 use Exporter qw( import );
-our @EXPORT_OK = qw(ids_to_names get_enr_val get_enr_code);
+our @EXPORT_OK = qw(ids_to_names get_enr_val get_enr_code get_genomes_features);
 our %EXPORT_TAGS = (
     'all' => \@EXPORT_OK,
 );
@@ -30,6 +30,7 @@ my $logger = get_logger();
 	# NA -- this object is just a set of utility functions
 	
 	# Functions #
+	sub get_genomes_features;
 	sub get_enr_code;
 	sub get_enr_val;
 	sub ids_to_names;
@@ -44,6 +45,33 @@ my $logger = get_logger();
 	#############
 	# Functions #
 	#############
+	sub get_genomes_features {
+		my ($g_aref, $dafe_db, $annote_file, $feature_type) = @_;
+
+		my %features = ();  # hash with features
+		
+		my $a_file; # full path to each annotation file
+		my $a_tbl = Table->new();  # Table of each genomes annotations
+		my $feat;
+		foreach my $g ( @{$g_aref} ) {
+			$logger->debug("$g");
+			$a_file = "$dafe_db/$g/$annote_file";
+			$a_tbl->load_from_file($a_file);
+
+			foreach my $feat ( @{$a_tbl->get_col($feature_type)} ) {
+				if ( $feat eq "NA" ) {next;}
+
+				if ( ! defined $features{$feat} ) {
+					$features{$feat} = 1;
+				}
+			}
+		}
+
+		my @features_arr = keys %features;
+
+		return(\@features_arr);
+	}
+
 	sub get_enr_val {
 		my ($logFC, $fdr, $up, $dn) = @_;
 
