@@ -334,7 +334,7 @@ __END__
 
 =head1 NAME
 
-[NAME].pl - [DESCRIPTION]
+DAFE_stat_da_tbl_summary.pl - Gets the summary numbers for a DA table
 
 
 =head1 VERSION
@@ -344,9 +344,11 @@ This documentation refers to version 0.0.1
 
 =head1 SYNOPSIS
 
-    [NAME].pl
-        -f my_file.txt
-        -v 10
+    DAFE_stat_da_tbl_summary.pl
+        --da_tbl_file final_tbl.txt
+        [--top_x] 5
+        --feat_meta_file cognames_meta.txt
+        --out_file full_da_tbl_sum.txt
         
         [--help]
         [--man]
@@ -355,8 +357,10 @@ This documentation refers to version 0.0.1
         [--quiet]
         [--logfile logfile.log]
 
-    --file | -f     Path to an input file
-    --var | -v      Path to an input variable
+    --da_tbl_file     Path DA table
+    --top_x           Print X COGs and genomes in the top lists
+    --feat_meta_file  Metadata file for the features in the table
+    --out_file        Path and name of output file
     --help | -h     Prints USAGE statement
     --man           Prints the man page
     --debug	        Prints Log4perl DEBUG+ messages
