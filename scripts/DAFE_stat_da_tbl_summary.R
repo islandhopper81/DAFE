@@ -33,6 +33,7 @@ if (! is.null(opt$verbose)) {
 main = function() {
 	# read in the da table
 	tbl = read.table(opt$da_tbl, header=T, row.names=1, sep="\t")
+	tbl = as.matrix(tbl)
 
 	# print the da talbe file
 	print(paste("DA table file:", opt$da_tbl))
@@ -43,7 +44,7 @@ main = function() {
 	# print the date
 	print(paste("Date:", Sys.Date()))
 
-	# print the number of tests (ie all cells with >= -2
+	# print the number of tests (ie all cells with > -2
 	tests = table(tbl > -2)["TRUE"]
 	print(paste("Total number of tests (ie > -2):", tests))
 
