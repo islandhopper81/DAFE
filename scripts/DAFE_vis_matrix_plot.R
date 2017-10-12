@@ -175,7 +175,7 @@ make_figure = function(mat, file_pre, show_xlabs = F, png=F) {
 	if ( show_xlabs == F ) {
 		p3 = p3 + theme(axis.text.x = element_blank(),
 				   axis.ticks.x = element_blank(),
-					panel.background = element_rect(file="white"),
+					panel.background = element_rect(fill="white"),
 					panel.grid.major = element_blank(),
 					panel.grid.minor = element_blank())
 	}
