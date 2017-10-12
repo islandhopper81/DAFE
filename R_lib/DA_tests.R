@@ -30,6 +30,29 @@ run_edgeR_grps = function(params_obj) {
     # create the empty output vector
     da_vec = as.vector(rep(-2,nrow(tbl)))
     names(da_vec) = row.names(tbl)
+
+	# filter the count table
+	tbl = filter(tbl = tbl,
+					metadata = params_obj$metaG_metadata_tbl, 
+					test_col = params_obj$test_col_name,
+					t1 = params_obj$test[1],
+					t2 = params_obj$test[2],
+					min_sample = params_obj$min_sample_count,
+					min_count = params_obj$min_sample_cpm)
+	
+	# if the table is empty then everything was removed
+	# in this case I want to write out some files and move
+	# to the next genome
+	if ( nrow(tbl) < 1 ) {
+		print("FINISH EARLY -- Didn't pass filter")
+
+		# print the da direction file (they will all be -2)
+		out_f = paste(outfile_prefix, "_da_vec.txt", sep="")
+		write.table(da_vec, out_f, quote=F, col.names=F)
+		
+		# move to the next genome
+		next
+	}
     
     # create the DGEList object (exact test)
     dge = DGEList(counts=tbl, group=params_obj$test_groups)  
@@ -40,27 +63,11 @@ run_edgeR_grps = function(params_obj) {
     # calculte the normalization factors
     dge = calcNormFactors(dge)
     
-    # filter -- by min_sample_count and min_sample_cpm
-    keep = rowSums(cpm(dge) > params_obj$min_sample_cpm) > params_obj$min_sample_count
-    if ( length(keep) == 0 | all(is.na(keep)) | sum(keep) == 0) {
-      # no genes in this genome pass the filter
-      print("FINISH EARLY -- Didn't pass filter")
-      
-      # print the da direction file (they will all be -2)
-      out_f = paste(outfile_prefix, "_da_vec.txt", sep="")
-      write.table(da_vec, out_f, quote=F, col.names=F)
-      
-      # move on to the next genome
-      next
-    } else {
-      dge.filt = dge[keep,]
-    }
-    
     # estimate dispersion parameters
     out = tryCatch({
-      dge.filt = estimateCommonDisp(dge.filt)
-      #dge.filt = estimateTrendedDisp(dge.filt)
-      dge.filt = estimateTagwiseDisp(dge.filt)
+      dge = estimateCommonDisp(dge)
+      #dge = estimateTrendedDisp(dge)
+      dge = estimateTagwiseDisp(dge)
       TRUE  # return TRUE.  This is to avoid an unnecessary warning
     }, error = function(err){
       print(paste(err$message))
@@ -81,11 +88,11 @@ run_edgeR_grps = function(params_obj) {
     # make the BCV plot
     out_f = paste(outfile_prefix, "_BCV.tiff", sep="")
     tiff(out_f)
-    plotBCV(dge.filt)
+    plotBCV(dge)
     dev.off()
     
     # run the exact binomial test
-    exact = exactTest(dge.filt, pair=params_obj$test)
+    exact = exactTest(dge, pair=params_obj$test)
     
     # get table of all tags.
     tags = topTags(exact, n=nrow(tbl))
@@ -105,13 +112,44 @@ run_edgeR_grps = function(params_obj) {
     
     # Make smear plot
     #out_f = paste(outfile_prefix, "_smear.tiff", sep="")
-    #make_smear_plot(exact, da, dge.filt, output_file = out_f)
+    #make_smear_plot(exact, da, dge, output_file = out_f)
   }
 }
 
 
 
 ### HELPER FUNCTIONs ###
+
+## FILTER ##
+# removes features (e.g. COGs) that have fewer than do not have min_count
+# reads in at least min_sample samples.
+filter = function(tbl, metadata, test_col, t1, t2, min_sample, min_count) {
+	# this function will need to be updated if I ever update the code
+	# to use multiple test groups (eg col, cvi, and oy). Rigth now I have 
+	# assumes that there will only be two test groups considered at one time.
+	# This implies that I can't do things like interaction terms.  If I
+	# ever stop using the exact test this function will have to change
+
+
+	# get the sample names for each group
+	t1_names = row.names(metadata[metadata[,test_col] == t1,])
+	t2_names = row.names(metadata[metadata[,test_col] == t2,])
+
+	# make sure the sample names are in the table for all these test
+	t1_names = t1_names[t1_names %in% colnames(tbl)]
+	t2_names = t2_names[t2_names %in% colnames(tbl)]
+
+	# check for the feature in each group
+	t1_keep = apply(tbl[,t1_names], 1, function(x) sum(x > min_count)) > min_sample
+	t2_keep = apply(tbl[,t2_names], 1, function(x) sum(x > min_count)) > min_sample
+
+	# combine the keeps
+	keep = t1_keep & t2_keep
+
+	# filter the table by removing features that do not pass the filter
+	return(tbl[keep,])
+}
+
 
 # Makes a da_vec by combining the empty_da_vec
 # with the calls from the tags object.  A vector
