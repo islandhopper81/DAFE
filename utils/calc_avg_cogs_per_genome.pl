@@ -23,10 +23,11 @@ sub check_params;
 sub _is_defined;
 
 # Variables #
-my ($db, $help, $man);
+my ($db, $out_file, $help, $man);
 
 my $options_okay = GetOptions (
     "db:s" => \$db,
+	"out_file:s" => \$out_file,
     "help|h" => \$help,                  # flag
     "man" => \$man,                     # flag (print full man page)
 );
@@ -43,6 +44,11 @@ check_params();
 ########
 # MAIN #
 ########
+# open the output file
+open my $OUT, ">", $out_file or
+	$logger->logdie("Cannot open --out_file $out_file");
+
+# open the DAFE db and go through eac genome in there.
 opendir( my $DH, $db ) or
 	$logger->logdie("Cannot open --db $db\n");
 
@@ -80,6 +86,9 @@ foreach my $file ( readdir($DH) ) {
 	$perc = $tot_cogs / $tot_genes;
 	push @percents, $perc;
 	$logger->debug("perc: $perc\n"); 
+
+	# print this info to the output file
+	print $OUT "$file\t$perc\n";
 }
 
 my $tot_perc = 0;
@@ -100,6 +109,10 @@ sub check_params {
 	# check for required variables
 	if ( ! defined $db) { 
 		pod2usage(-message => "ERROR: required --db not defined\n\n",
+					-exitval => 2); 
+	}
+	if ( ! defined $out_file ) { 
+		pod2usage(-message => "ERROR: required --out_file not defined\n\n",
 					-exitval => 2); 
 	}
 
