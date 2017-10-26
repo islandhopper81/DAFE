@@ -16,6 +16,15 @@ use Class::Std::Utils;
 use Scalar::Util::Numeric qw(isneg isint isfloat);
 use MyX::Generic;
 use Table;
+use UtilSY qw(:all);
+
+# Readonly Global Variables #
+Readonly::Scalar my $ENR => 1; # enriched
+Readonly::Scalar my $NS => 0;  # not significant
+Readonly::Scalar my $DEP => -1; # depleted
+Readonly::Scalar my $LOW => -2; #low abundance
+Readonly::Scalar my $UMS => -3; # unmeasurable but present in genome
+Readonly::Scalar my $ABS => -4; # absent from genome
 
 
 {
@@ -26,7 +35,7 @@ use Table;
     ### Subroutines ###
     sub decouple; # Takes in a genome and searches its annotation file to search if the -2's from the differentially abundant statistics are b/c of no info or are not present in the genome
     sub _remake_da_with_decoupled;
-    sub _check_negative_two;
+    sub _check_negative_two; # DEPRECIATED
     
     sub _set_param_handler;
     sub set_count_file_name;
@@ -94,33 +103,24 @@ use Table;
 		my $annote_file_tbl = Table->new();
 		$annote_file_tbl->load_from_file($annote_file);
 		my $grp_by_col = $param_obj->get_grp_genes_by();
-		my %grp_vals = ();
+		my $grp_vals_href; # a lookup list of all the present features (ie COGs, COG categories, etc)
 		my $grp_vals_aref;
 		if ( $annote_file_tbl->has_col($grp_by_col) ) {
 			$grp_vals_aref = $annote_file_tbl->get_col($grp_by_col);
-			foreach my $val ( @{$grp_vals_aref} ) {
-				$grp_vals{$val} = 1;
-			}
+			$grp_vals_href = aref_to_href($grp_vals_aref);
 		}
 		$annote_file_tbl->reset();
         
-        #go through each kog and check the DA Value
+        #go through each feature (ie COG) and correct the DA value as needed
         foreach my $line ( @count_file_a ) {
-            if ( $line->[1] eq "-2") {
-                #if ( _check_negative_two($line->[0],$slurped_annote_file) == 0 ){
-                #    $line->[1] = -3;
-                #}
-
-				# I changed the function _check_neative_two due to a bug.
-				# see the funciton for more detials
-				#if ( _check_negative_two($line->[0], $annote_file_tbl, $grp_by_col) == 0 ) {
-				#	$line->[1] = -3;
-				#}
-
-				# I am not not using the new _check_negatiave_two function
-				# because it was a memory hog
-				if ( ! defined $grp_vals{$line->[0]} ) {
-					$line->[1] = -3;
+            if ( $line->[1] eq $UMS) {
+				# At this point I'm looking at a feature that is either unmeasurable
+				# or completely absent from the genome.  That is what I figure out
+				# below.
+				if ( ! defined $grp_vals_href->{$line->[0]} ) {
+					# if this feature is not defined in the grp_vals_href lookup, that means
+					# it was not in the annotation file therefore it is a ABS feature
+					$line->[1] = $ABS;
 				}
             }
         }
@@ -146,6 +146,8 @@ use Table;
     
     sub _check_negative_two_old {
         my ($grp_id, $slurped_annote_file) = @_;
+		# DEPRECIATED
+
         #check to see if the group id is in the genomes annotation file
         if ( $slurped_annote_file =~ qr/$grp_id/i ) {
             return 1;
@@ -157,6 +159,7 @@ use Table;
 
 	sub _check_negative_two {
 		my ($grp_id, $annote_tbl, $grp_by_col) = @_;
+		# DEPRECIATED
 
 		# there was a bug in this function.  It was only looking for the $grp_id
 		# in the entire annotation file.  This would cause problems when the 
