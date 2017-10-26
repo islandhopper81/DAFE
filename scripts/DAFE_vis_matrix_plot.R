@@ -146,11 +146,12 @@ make_figure = function(mat, file_pre, show_xlabs = F, png=F) {
   
   
   # set up some variables for plotting
-  legend.values = c("lightgrey", "ivory", "blue", "yellow", "red")
-  legend.limits = c(-3,-2,-1,0,1)
+  legend.values = c("darkgrey", "lightgrey", "ivory", "blue", "yellow", "red")
+  legend.limits = c(-4,-3,-2,-1,0,1)
   legend.name = paste("KOG", "Abundance", sep="\n")
-  legend.labels = c("Absent", "Undetectable", "RZ < BK", "RZ = BK", "RZ > BK")
+  legend.labels = c("Absent", "Undetectable", "Low Abundance", "RZ < BK", "RZ = BK", "RZ > BK")
   genome_order = factor(rownames(mat))
+	print(genome_order)
   grp_order = get_grp_name_ord(df)$ord
   
   # plot it!
@@ -163,7 +164,7 @@ make_figure = function(mat, file_pre, show_xlabs = F, png=F) {
     scale_x_discrete(limits=grp_order) + 
     scale_y_discrete(limits=genome_order) +
     xlab("KOGs") + 
-    theme(axis.text.y = element_blank(),
+    theme(
           axis.ticks.y = element_blank(),
           axis.title.y = element_blank(),
           legend.title = element_text(size=22),
@@ -171,6 +172,8 @@ make_figure = function(mat, file_pre, show_xlabs = F, png=F) {
           panel.background = element_rect(fill="white"),
 		  panel.grid.major = element_blank(),
 		  panel.grid.minor = element_blank())
+
+	# removed: axis.text.y = element_blank()
 
 	if ( show_xlabs == F ) {
 		p3 = p3 + theme(axis.text.x = element_blank(),
