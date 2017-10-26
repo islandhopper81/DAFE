@@ -136,8 +136,8 @@ justify_data = function(tree_matrix_obj, meta.by="Name") {
 # Function for creating the grp tree figure
 get_tree_matrix_plot = function(tree_matrix_obj, output_dir, save=T, grp_names=NULL, 
                                 output_file="grp_da_figure_with_tree.png", 
-                                gtitle="", legend.limits = c(-3,-2,-1,0,1),
-                                legend.values = c("lightgrey", "ivory", "blue", "yellow", "red"),
+                                gtitle="", legend.limits = c(-4,-3,-2,-1,0,1),
+                                legend.values = c("darkgrey", "lightgrey", "ivory", "blue", "yellow", "red"),
                                 legend.name = NULL,
                                 legend.labels = NULL,
                                 p1_x_vp=0.085, p2_x_vp=0.2, p3_x_vp=0.62,
@@ -157,17 +157,17 @@ get_tree_matrix_plot = function(tree_matrix_obj, output_dir, save=T, grp_names=N
   # set some defaults.  if the null value is passed in the defaults in the
   # function declaration are ignored
   if ( is.null(legend.values) ) {
-    legend.values = c("lightgrey", "ivory", "blue", "yellow", "red")
+    legend.values = c("darkgrey", "lightgrey", "ivory", "blue", "yellow", "red")
   }
   if ( is.null(legend.limits) ) {
-    legend.limits = c(-3,-2,-1,0,1)
+    legend.limits = c(-4,-3,-2,-1,0,1)
   }
   
   debug = TRUE
   
   # set some default values
   if ( is.null(legend.name) ) { legend.name = paste("COG", "Abundance", sep="\n") }
-  if ( is.null(legend.labels) ) { legend.labels = c("Absent", "Undetectable", "RZ < BK", "RZ = BK", "RZ > BK")}
+  if ( is.null(legend.labels) ) { legend.labels = c("Absent", "Undetectable", "Low Abundance", "RZ < BK", "RZ = BK", "RZ > BK")}
   
   
   if ( debug == TRUE ) {

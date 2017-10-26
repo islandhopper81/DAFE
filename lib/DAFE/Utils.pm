@@ -13,14 +13,24 @@ use version; our $VERSION = qv('0.0.2');
 use UtilSY qw(:all);
 use Table;
 use File::Slurp;
+use List::Util qw(sum);
 use Exporter qw( import );
-our @EXPORT_OK = qw(ids_to_names get_enr_val get_enr_code get_genomes_features);
+our @EXPORT_OK = qw(ids_to_names get_enr_val get_enr_code get_genomes_features is_measurable);
 our %EXPORT_TAGS = (
     'all' => \@EXPORT_OK,
 );
 
 # set up the logging environment
 my $logger = get_logger();
+
+# GLOBALS #
+Readonly::Scalar my $ENR => 1;   # Enriched
+Readonly::Scalar my $NS => 0;    # not significant
+Readonly::Scalar my $DEP => -1;  # depleted
+Readonly::Scalar my $LOW => -2;  # too low to test
+Readonly::Scalar my $UNM => -3;  # no reads map but contained in genome
+Readonly::Scalar my $ABS => -4;  # not in genome
+
 
 {
 	# Usage statement
@@ -30,6 +40,7 @@ my $logger = get_logger();
 	# NA -- this object is just a set of utility functions
 	
 	# Functions #
+	sub is_measurable;
 	sub get_genomes_features;
 	sub get_enr_code;
 	sub get_enr_val;
@@ -45,6 +56,56 @@ my $logger = get_logger();
 	#############
 	# Functions #
 	#############
+	sub is_measurable {
+		my ($sample_meta_tbl, $test_col, $t1, $t2, $count_tbl, $feat, $min_s, $min_c) = @_;
+
+		# sample metadata table - for spliting the samples into the test groups
+		# test col - column in sample metadata use to split into test groups
+		# t1 and t2 - names of the tests as specified in test_col
+		# feat - the feature to test for measurability
+		# min_c - min number of reads required for at least min_s samples
+		# min_s - min number of samples to have at least min_c reads
+
+		# NOTE: someday this function would be better incorperated into a DA Table object
+
+		# get the sample names in test group 1 and 2
+		my %t1_names = ();
+		my %t2_names = ();
+		foreach my $s ( @{$sample_meta_tbl->get_row_names()} ) {
+			# each s is a sample
+			if ( $t1 eq $sample_meta_tbl->get_value_at($s, $test_col) ) {
+				$t1_names{$s} = 1;
+			}
+			elsif ( $t2 eq $sample_meta_tbl->get_value_at($s, $test_col) ) {
+				$t2_names{$s} = 1;
+			}
+		}
+
+		# test for measurability by looking at each col in the count table
+		my $t1_pass = 0; # the number of samples with at least min_c for the t1 samples
+		my $t2_pass = 0; # the number of samples with at least min_c for the t2 samples
+		foreach my $c ( @{$count_tbl->get_col_names()} ) {
+			if ( defined $t1_names{$c} ) {
+				# this is a sample in group 1
+				if ( $count_tbl->get_value_at($feat, $c) >= $min_c ) {
+					$t1_pass++;
+				}
+			}
+			elsif ( defined $t2_names{$c} ) {
+				# this is a sample in group 2
+				if ( $count_tbl->get_value_at($feat, $c) >= $min_c ) {
+					$t2_pass++;
+				}
+			}
+		}
+
+		if ( $t1_pass >= $min_s and $t2_pass >= $min_s ) {
+			return(1);
+		}
+
+		return(0);  # default is to return false
+	}
+
 	sub get_genomes_features {
 		my ($g_aref, $dafe_db, $annote_file, $feature_type) = @_;
 
@@ -58,7 +119,7 @@ my $logger = get_logger();
 			$a_file = "$dafe_db/$g/$annote_file";
 			$a_tbl->load_from_file($a_file);
 
-			foreach my $feat ( @{$a_tbl->get_col($feature_type)} ) {
+			foreach $feat ( @{$a_tbl->get_col($feature_type)} ) {
 				if ( $feat eq "NA" ) {next;}
 
 				if ( ! defined $features{$feat} ) {
@@ -104,14 +165,14 @@ my $logger = get_logger();
 		# which indicates the enrichment value
 		
 		if ($fdr > 0.05 ) {
-			return(0);
+			return($NS);
 		}
 
 		if ( $logFC > 0 ) {
-			return(1); # up
+			return($ENR); # up
 		}
 		else {
-			return(-1); # down
+			return($DEP); # down
 		}
 	}
 
