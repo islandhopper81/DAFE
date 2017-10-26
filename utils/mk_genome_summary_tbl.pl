@@ -16,16 +16,24 @@ use Log::Log4perl qw(:easy);
 use Log::Log4perl::CommandLine qw(:all);
 use UtilSY qw(:all);
 use DAFE::AbEstimator;
+use DAFE::Utils qw(:all);
 
 # Subroutines #
 sub check_params;
-sub _is_defined;
 
 # Variables #
-my ($da_tbl_file, $dafe_out, $sample_meta_file, $ref_meta_file, $out_file, $help, $man);
+my ($da_tbl_file, $tags_file, $dafe_out, $sample_meta_file, $ref_meta_file, $out_file, $help, $man);
+
+Readonly::Scalar my $ENR => 1;   # Enriched
+Readonly::Scalar my $NS => 0;    # not significant
+Readonly::Scalar my $DEP => -1;  # depleted
+Readonly::Scalar my $LOW => -2;  # too low to test
+Readonly::Scalar my $UNM => -3;  # no reads map but contained in genome
+Readonly::Scalar my $ABS => -4;  # not in genome
 
 my $options_okay = GetOptions (
     "da_tbl_file:s" => \$da_tbl_file,
+	"tags_file:s" => \$tags_file,
 	"dafe_out:s" => \$dafe_out,
 	"sample_meta_file:s" => \$sample_meta_file,
 	"ref_meta_file:s" => \$ref_meta_file,
@@ -50,23 +58,81 @@ my $out_tbl = Table->new();
 
 # read in the DA table and calculate the enrichments for each genome
 $logger->info("Enrichment summary");
-my $da_tbl = Table->new();
-$da_tbl->load_from_file($da_tbl_file);
+if ( defined $da_tbl_file ) {
 
-foreach my $g ( @{$da_tbl->get_col_names()} ) {
-	$logger->debug("Genome: $g");
-	my $enr = 0;
-	my $rz = 0;
-	my $bk = 0;
+	$logger->debug("Loading DA table");
+	my $da_tbl = Table->new();
+	$da_tbl->load_from_file($da_tbl_file);
 
-	foreach my $val ( @{$da_tbl->get_col($g)} ) {
-		if ( $val == 1 ) { $rz++; $enr++; }
-		elsif ($val == -1 ) { $bk++; $enr++; }
+	foreach my $g ( @{$da_tbl->get_col_names()} ) {
+		$logger->debug("Genome: $g");
+		my $enr = 0;
+		my $rz = 0;
+		my $bk = 0;
+
+		foreach my $val ( @{$da_tbl->get_col($g)} ) {
+			if ( $val == 1 ) { $rz++; $enr++; }
+			elsif ($val == -1 ) { $bk++; $enr++; }
+		}
+
+		my @names = ("Enriched", "RZ Enriched", "BK Enriched");
+		my @vals = ($enr, $rz, $bk);
+		$out_tbl->add_row($g, \@vals, \@names);
+	}
+}
+else {
+	# in this case the DA table is not defined therefore I should
+	# get the info from each genomes tag file
+
+	$logger->debug("Looking at each tags files");
+	opendir(my $DAFE, $dafe_out) or
+		$logger->logdie("Cannot open --dafe_out: $dafe_out");
+
+	my @col_names = ("Enriched", "UP Enriched", "DN Enriched");
+	my $tmp_tags_file;
+	my $tmp_tags_tbl = Table->new();
+	my $tmp_da_val;
+	foreach my $g ( readdir($DAFE) ) {
+		if ( $g =~ m/^\./ ) { next; } # skip hidden files
+
+		$logger->debug("Looking for tags file for genome, $g");
+		$tmp_tags_file = "$dafe_out/$g/$tags_file";
+
+		# when the tags file does not exist we know there are no
+		# enriched tags
+		if ( ! -e $tmp_tags_file ) {
+			my @vals = (0,0,0);
+			$out_tbl->add_row($g, \@vals, \@col_names);
+			next;
+		}
+
+		# calculate if each tag is ENR, DEP, or NS
+		my $enr_count = 0;
+		my $up_count = 0;
+		my $dn_count = 0;
+		$tmp_tags_tbl->load_from_file($tmp_tags_file, " ");
+		foreach my $tag ( @{$tmp_tags_tbl->get_row_names()} ) {
+			$tmp_da_val = get_enr_code(
+				$tmp_tags_tbl->get_value_at($tag, "logFC"),
+				$tmp_tags_tbl->get_value_at($tag, "FDR")
+			);
+
+			if ( $tmp_da_val eq $ENR ) { 
+				$enr_count++; 
+				$up_count++;
+			}
+			elsif ( $tmp_da_val eq $DEP ) { 
+				$enr_count++;
+				$dn_count++;
+			}
+		}
+
+		# now add the summary counts to the output file
+		my @count_vals = ($enr_count, $up_count, $dn_count);
+		$out_tbl->add_row($g, \@count_vals, \@col_names);
 	}
 
-	my @names = ("Enriched", "RZ Enriched", "BK Enriched");
-	my @vals = ($enr, $rz, $bk);
-	$out_tbl->add_row($g, \@vals, \@names);
+	closedir($DAFE);
 }
 
 ### load the sample metadata so I can split the table by fraction
@@ -95,7 +161,8 @@ $out_tbl->add_col("BK Mean Abundance Estimate", \@bk_mean_abund);
 my @pa_designation = ("NA") x $out_tbl->get_row_count();
 $out_tbl->add_col("PA/NPA/Soil", \@pa_designation);
 
-opendir(my $DAFE, $dafe_out) or
+# note the DAFE variable is declared and used once above
+opendir( my $DAFE, $dafe_out) or
 	$logger->logdie("Cannot open --dafe_out: $dafe_out");
 
 my $file;
@@ -104,6 +171,7 @@ my $rz_abund_tbl = Table->new();
 my $bk_abund_tbl = Table->new();
 my $estimator = DAFE::AbEstimator->new();
 
+# note the g variable is declared and also used above
 foreach my $g ( readdir($DAFE) ) {
 	if ( $g =~ m/^\./ ) { next; } #skip hidden files
 	if ( ! -d "$dafe_out/$g/" ) { next; } #skip non dirs
@@ -166,8 +234,8 @@ $out_tbl->save($out_file);
 ########
 sub check_params {
 	# check for required variables
-	if ( ! defined $da_tbl_file) { 
-		pod2usage(-message => "ERROR: required --da_tbl_file not defined\n\n",
+	if ( ! defined $da_tbl_file and ! defined $tags_file) { 
+		pod2usage(-message => "ERROR: required --da_tbl_file OR --tags_file\n\n",
 					-exitval => 2); 
 	}
 	if ( ! defined $dafe_out ) {
