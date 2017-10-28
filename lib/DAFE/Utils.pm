@@ -236,6 +236,16 @@ Readonly::Scalar my $ABS => -4;  # not in genome
 		foreach my $r ( @{$meta_tbl->get_row_names()} ) { 
 		#	$logger->debug("Looking for ID: $r");
 			my $name = $meta_tbl->get_value_at($r, "Name");
+
+			# remove special characters
+			if ( $name =~ m/,/ ) {
+				$name =~ s/,//g;
+			}
+			if ( $name =~ m/:/ ) {
+				$name =~ s/:/_/g;
+			}
+		
+			# do the name/id swap
 			$str =~ s/$r/$name/g;
 		}
 		
