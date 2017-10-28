@@ -53,16 +53,18 @@ main = function() {
 	# make the pa/npa/soil plot
 	p1 = ggplot(meta, aes(x=Label, y=log10(counts))) +
 		geom_boxplot(outlier.size=NA) + 
-		geom_point(position=position_jitter(width=0.3)) +
+		geom_point(position=position_jitter(width=0.25)) +
 		theme(text = element_text(size=20),
 			plot.title = element_text(hjust = 0.5)) +
 		scale_x_discrete(limits = c("PA", "Soil", "NPA")) +
-		ggtitle(opt$title) +
-		ylab("Reads Mapped (log10)") +
-		xlab("Plant Association Group")
+		ylab("Reads Mapped (log10)")
+		
+	  # I removed these so I could make it skinny
+	  		#ggtitle(opt$title) +
+			#xlab("Plant Association Group")
 
 	out_file = paste(opt$out_prefix, "_pa_npa_soil.pdf", sep="")
-	ggsave(out_file, p1) 
+	ggsave(out_file, p1, width=3, height=6) 
 
 	# make the plot graphed by genome environment
 	p2 = ggplot(meta, aes(x=Source, y=log10(counts))) +
@@ -96,6 +98,63 @@ main = function() {
 
 	out_file = "reads_mapped_per_meta_env.pdf"
 	ggsave(out_file, p3)
+	
+	
+	### make a plot similar to p1 but split by fraction
+	# remember the genomes are rows in the counts table
+	rz_samples = sample_meta$fraction == "RZ"
+	bk_samples = sample_meta$fraction == "BK"
+	rz_sum = apply(counts[,rz_samples], 1, sum)
+	bk_sum = apply(counts[,bk_samples], 1, sum)
+	
+	# add the rz and bk sums to the meta
+	meta[,"rz_counts"] = rz_sum
+	meta[,"bk_counts"] = bk_sum
+	
+	# melt the table to get it into long format for plotting
+	molten = melt(meta, id.vars=c("Label"), measure.vars = c("rz_counts", "bk_counts"))
+	
+	# make the pa/npa/soil plot
+	p4 = ggplot(molten, aes(x=Label, y=log10(value), color=variable)) +
+		geom_boxplot(outlier.size=NA) + 
+		geom_point(position=position_jitterdodge()) +
+		theme(text = element_text(size=16),
+			plot.title = element_text(hjust = 0.5)) +
+		scale_x_discrete(limits = c("PA", "Soil", "NPA")) +
+		scale_color_discrete("Fraction", labels = c("RZ", "BK")) +
+		ylab("Reads Mapped (log10)")
+
+	out_file = paste(opt$out_prefix, "_pa_npa_soil_by_frac.pdf", sep="")
+	ggsave(out_file, p4)
+	
+	
+	### make a plot similar to p2 but split by fraction
+	# melt the table to get it into long format for plotting
+	molten = melt(meta, id.vars=c("Source"), measure.vars = c("rz_counts", "bk_counts"))
+	
+	# make the pa/npa/soil plot
+	p5 = ggplot(molten, aes(x=Source, y=log10(value), color=variable)) +
+		geom_boxplot(outlier.size=NA) + 
+		geom_point(position=position_jitterdodge()) +
+		theme(text = element_text(size=16),
+			plot.title = element_text(hjust = 0.5),
+			axis.text.x = element_text(angle = 90, hjust = 1)) +
+		scale_color_discrete("Fraction", labels = c("RZ", "BK")) +
+		ylab("Reads Mapped (log10)")
+
+	out_file = paste(opt$out_prefix, "_iso_env_by_frac.pdf", sep="")
+	ggsave(out_file, p5)
+	
+	
+	# print out the top 5 rhizosphere colonizers
+	sorted = meta[order(-meta$rz_count),]
+	print("Top 5 RZ colonizers")
+	print(sorted[1:5,])
+	
+	# print out the top 5 rhizosphere colonizers
+	sorted = meta[order(-meta$bk_count),]
+	print("Top 5 BK colonizers")
+	print(sorted[1:5,])
 }
 
 # run the main function to execute the program
