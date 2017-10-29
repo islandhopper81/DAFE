@@ -243,13 +243,13 @@ Readonly::Scalar my $ABS => -4;  # not in genome
 		foreach my $r ( @{$meta_tbl->get_row_names()} ) { 
 		#	$logger->debug("Looking for ID: $r");
 			my $name = $meta_tbl->get_value_at($r, "Name");
+			
+			# save only the genus if $genus is set to true
+			if ( $genus == 1 and $name =~ m/^(\S+)\s/ ) {
+				$name = $1;
+			}
+			
 			$str =~ s/$r/$name/g;
-		}
-		
-		if ( $genus == 1 and $str =~ m/^(\s+)\S/ ) {
-			# get only the name up until the first space.  this should be the
-			# genus
-			$str = $1;
 		}
 		
 		return($str);	
