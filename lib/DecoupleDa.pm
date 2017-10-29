@@ -15,6 +15,17 @@ use XML::Simple qw(:strict);
 use Class::Std::Utils;
 use Scalar::Util::Numeric qw(isneg isint isfloat);
 use MyX::Generic;
+use Table;
+use UtilSY qw(:all);
+
+# Readonly Global Variables #
+Readonly::Scalar my $ENR => 1; # enriched
+Readonly::Scalar my $NS => 0;  # not significant
+Readonly::Scalar my $DEP => -1; # depleted
+Readonly::Scalar my $LOW => -2; #low abundance
+Readonly::Scalar my $UMS => -3; # unmeasurable but present in genome
+Readonly::Scalar my $ABS => -4; # absent from genome
+
 
 {
     #Attributes
@@ -24,14 +35,14 @@ use MyX::Generic;
     ### Subroutines ###
     sub decouple; # Takes in a genome and searches its annotation file to search if the -2's from the differentially abundant statistics are b/c of no info or are not present in the genome
     sub _remake_da_with_decoupled;
-    sub _check_negative_two;
+    sub _check_negative_two; # DEPRECIATED
     
     sub _set_param_handler;
     sub set_count_file_name;
     sub manually_set_cnt_file_name_from_edger;
     
     sub get_param_handler;
-    sub get_count_file_name;
+	sub get_count_file_name;
     
     
     
@@ -87,14 +98,30 @@ use MyX::Generic;
             
         #create a slurped array 
         my @count_file_a = $count_file_obj->slurp(chomp=>1, split=>qr/\s/);
-        my $slurped_annote_file = $annote_file_obj->slurp();
         
-        #go through each kog and check the DA Value
+		#my $slurped_annote_file = $annote_file_obj->slurp();
+		my $annote_file_tbl = Table->new();
+		$annote_file_tbl->load_from_file($annote_file);
+		my $grp_by_col = $param_obj->get_grp_genes_by();
+		my $grp_vals_href; # a lookup list of all the present features (ie COGs, COG categories, etc)
+		my $grp_vals_aref;
+		if ( $annote_file_tbl->has_col($grp_by_col) ) {
+			$grp_vals_aref = $annote_file_tbl->get_col($grp_by_col);
+			$grp_vals_href = aref_to_href($grp_vals_aref);
+		}
+		$annote_file_tbl->reset();
+        
+        #go through each feature (ie COG) and correct the DA value as needed
         foreach my $line ( @count_file_a ) {
-            if ( $line->[1] eq "-2") {
-                if ( _check_negative_two($line->[0],$slurped_annote_file) == 0 ){
-                    $line->[1] = -3;
-                }
+            if ( $line->[1] eq $UMS) {
+				# At this point I'm looking at a feature that is either unmeasurable
+				# or completely absent from the genome.  That is what I figure out
+				# below.
+				if ( ! defined $grp_vals_href->{$line->[0]} ) {
+					# if this feature is not defined in the grp_vals_href lookup, that means
+					# it was not in the annotation file therefore it is a ABS feature
+					$line->[1] = $ABS;
+				}
             }
         }
         _remake_da_with_decoupled(\@count_file_a, $count_file); #print decoupled info in old file
@@ -117,8 +144,10 @@ use MyX::Generic;
         return 1;
     }
     
-    sub _check_negative_two {
+    sub _check_negative_two_old {
         my ($grp_id, $slurped_annote_file) = @_;
+		# DEPRECIATED
+
         #check to see if the group id is in the genomes annotation file
         if ( $slurped_annote_file =~ qr/$grp_id/i ) {
             return 1;
@@ -127,6 +156,41 @@ use MyX::Generic;
             return 0;
         }
     }
+
+	sub _check_negative_two {
+		my ($grp_id, $annote_tbl, $grp_by_col) = @_;
+		# DEPRECIATED
+
+		# there was a bug in this function.  It was only looking for the $grp_id
+		# in the entire annotation file.  This would cause problems when the 
+		# grp_id was something like "A" as in the case when I do cog groups.
+		# So I changed the parameters so that a Table object is passed in which
+		# has all the data in the annotation file.  I check the correct column
+		# in the annotation file for any instances of grp_id.  If there are no
+		# instances then I return 0.
+
+		# note: this function takes a ton of memory.  I don't use it anymore
+		
+		# get the column of values in the annoation table
+		if ( $annote_tbl->has_col($grp_by_col) ) {
+			my $vals = $annote_tbl->get_col($grp_by_col);
+
+			foreach my $v ( @{$vals} ) {
+				if ( $v eq $grp_id ) {
+					return 1;
+				}
+			}
+		}
+		else {
+			# throw some error
+			MyX::Generic::BadValue->throw(
+				error => "Cannot find column $grp_by_col in the annotation table"
+			);
+		}
+		
+
+		return 0;
+	}
     
     
     ### SETTERS ###
@@ -141,11 +205,28 @@ use MyX::Generic;
     
     sub _set_count_file_name {
         my ($self, $param_obj) = @_;
+
+		# get the test values.  These are used so that mutliple
+		# statistical tests can be ran on the same aggregated
+		# count file without overwritting previous statistical
+		# test outputs
+		my $test_str = $param_obj->get_test();
+		my $test1;
+		my $test2;
+		if ( $test_str =~ m/\["(.*)",\s*"(.*)"\]/ ) {
+			$test1 = $1;
+			$test2 = $2;
+		}
+		else {
+			croak("Cannot find the tests in the test string: $test_str");
+		}
         
         my $count_f_name = $param_obj->get_count_file_name();
         my $grp_genes_by = $param_obj->get_grp_genes_by();
         $count_f_name =~ s/\.txt//;
-        $count_f_name .= "_$grp_genes_by" . "_agg_da_vec.txt";
+        $count_f_name .= "_$grp_genes_by\_agg_";
+		$count_f_name .= "$test1\_v_$test2";
+		$count_f_name .= "_da_vec.txt";
         $count_file_names{ident $self} = $count_f_name;
         
         return 1;

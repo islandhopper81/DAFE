@@ -16,6 +16,7 @@ use Scalar::Util::Numeric qw(isneg isint isfloat);
 use MyX::Generic;
 use YAML::XS qw(LoadFile DumpFile Dump);
 use File::Temp qw(tempfile tempdir);
+use Set::Scalar;
 
 
 {
@@ -70,12 +71,12 @@ ref_meta_cols
   sub get_print_params;
   sub get_global_params;
   sub get_edger_params;
-	sub get_temp_yaml_file;
+  sub get_temp_yaml_file;
   sub set_params;
   sub check_print_params;
   sub check_edger_params;
   sub spew_xml_file;
-	sub spew_out;
+  sub spew_out;
 
   #Internal
   sub _check_run_type;
@@ -102,8 +103,8 @@ ref_meta_cols
   sub _check_test_info;
   sub _check_test_col_name;
   sub _check_big_mat;
-	sub _check_Rsource_dir;
-	
+  sub _check_Rsource_dir;
+  
 
   sub _check_global_params;
   sub _are_global_tags_present;
@@ -134,6 +135,7 @@ ref_meta_cols
 
     return $new_obj;
   }
+
   #############
   #SUBROUTINES#
   #############
@@ -785,30 +787,43 @@ ref_meta_cols
       my $col_num = 0;
       my $first_line_aref = $slurped_meta_file[0];
       foreach my $col (@$first_line_aref) {
-	if ($col eq $test_col) {
-	  last;
-	}
-	$col_num++;
+		if ($col eq $test_col) {
+		  last;
+		}
+		$col_num++;
       }
       my $total_names = 0;
       my $found_names = 0;
-      foreach my $test_names (@split_test_names) {
-	if ( $test_names =~ /[a-z]/i ) {
-	  $total_names++;
-	  foreach my $line_aref (@slurped_meta_file) {
-	    if ( @$line_aref[$col_num] eq $test_names ) {
-	      $found_names++;
-	      last;
-	    }
+	  
+	  # set the test names
+	  # these are the names that are in the test field in the params file
+	  my $test_names = Set::Scalar->new();
+	  foreach my $n ( @split_test_names ) {
+		if ( $n =~ m/[a-z]/i ) {
+		  $test_names->insert($n);
+		}
 	  }
-	}
-      }
-      if ($total_names != $found_names) {
-	MyX::Generic::BadValue->throw(
-				      error => "test names do not match values under the test_col_name in the metaG_meta_file",
-				      value => $test,
-				     );
-      }
+	  
+	  # look in the metadata file for the test column and set the values in that
+	  # column to be the metadata_vals
+	  my @metadata_vals = ();
+	  my $metadata_vals = Set::Scalar->new();
+	  foreach my $line_aref (@slurped_meta_file) {
+		$metadata_vals->insert(@$line_aref[$col_num]);
+	  }
+	  
+	  # now test to see if all of the values in the params file test parameter
+	  # are found at least one time in the metadata_vals
+	  my $set_diff =  $metadata_vals - $test_names;
+	  if ( $set_diff->size() != $metadata_vals->size() - $test_names->size() ) {
+		print "set_diff size: " . $set_diff->size() . "\n";
+		print "metadata_vals size: " . $metadata_vals->size() . "\n";
+		print "test_names size: " . $test_names->size() . "\n";
+		print "set_diff: " . $set_diff . "\n";
+		MyX::Generic::BadValue->throw(
+		  error => "Not all test parameter values are in the sample metadata",
+		 );
+	  }
     }#elsif
     return 1;
   }

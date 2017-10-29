@@ -23,9 +23,6 @@ use YAML::XS qw(LoadFile);
 use File::Temp qw(tempfile tempdir);
 use Log::Log4perl qw(:easy);
 use Log::Log4perl::CommandLine qw(:all);
-use Cwd qw(abs_path);
-use File::Basename;
-use UtilSY qw(:all);;
 
 
 # My Variables
@@ -34,14 +31,12 @@ my $man = 0;
 my $xml_file;
 my $yml_file; # Will hold the param file passed into the driver
 my $out_dir; #place to put the ordered ids and meta_file
-my $skip_agg = 0;
 
 # Read in variables from the command line
 GetOptions ('man'  => \$man,
             'help' => \$help,
             'xml_file|x=s' => \$xml_file,
             'yml_file|y=s' => \$yml_file,
-            'skip_agg'       => \$skip_agg,
             ) || die("There was an error in the command line arguements\n");
 
 # Use Pod usage for the Manual and Help pages
@@ -61,15 +56,7 @@ my $logger = get_logger();
 
 # MAIN #
 
-# check some parmaeters
-if ( ! defined $skip_agg ) {
-	$skip_agg = 0; # FALSE
-}
-else {
-	$skip_agg = to_bool($skip_agg);
-}
-
-my$param_obj;
+my $param_obj;
 #Create a Param_handler object and check the edgeR Params. Put this in the param hendler
 if (defined $xml_file) {
     $logger->info( "Creating a Param object with an xml file" );
@@ -82,7 +69,7 @@ elsif (defined $yml_file) {
     #my $param_href = find_param_values_from_txt_file($yml_file);
     $param_obj = Param_handler->new( { yml_file => $yml_file } );
 }
-
+#$param_obj->set_Rsource_dir( "../R_lib");
 $logger->info( "Checking the edgeR parameters" );
 $param_obj->check_edger_params();
 
@@ -92,32 +79,25 @@ $out_dir = $param_obj->get_out_dir();
 my $ids_out = $out_dir . "/ordered_ids.txt";
 my $meta_out = $out_dir . "/ordered_metafile.txt";
 
-my $aggregate_obj;
+$logger->info( "Creation of an ordered metadata file" );
+$logger->debug( $meta_out );
+$justify_obj->spew_trimmed_ordered_meta_file( $meta_out );
 
-#This will skip the actual aggregation of the data because it is alredy done
-if ( ! $skip_agg ) {
-    $logger->info( "Creation of an ordered metadata file" );
-    $logger->debug( $meta_out );
-    $justify_obj->spew_trimmed_ordered_meta_file( $meta_out );
-    
-    $logger->info( "Creation of an ordered id file using the tree" );
-    $logger->debug( $ids_out );
-    $justify_obj->spew_ordered_ids( $ids_out );
-    
-    # Need to then perform the aggregation of the count data
-    $logger->info( "Creation of an aggregate object, and aggregation of all the count data" );
-    $aggregate_obj = Aggregate->new( $param_obj );
-    my $ids_aref = $justify_obj->get_ordered_ids_aref(); # Gives ids in analysis
-    #loop trough id's and perform the aggregation of the data
-    foreach my $id ( @$ids_aref ) {
-        $logger->info( "Aggregation of $id" );
-        $aggregate_obj->aggregate($id);
-    }
-}
-else {
-    $logger->info( "Creation of an aggregate object, but no aggregation step" );
-    $aggregate_obj = Aggregate->new( $param_obj );
-}
+$logger->info( "Creation of an ordered id file using the tree" );
+$logger->debug( $ids_out );
+$justify_obj->spew_ordered_ids( $ids_out );
+
+# Need to then perform the aggregation of the count data
+$logger->info( "Creation of an aggregate object, and aggregation of all the count data" );
+my $aggregate_obj = Aggregate->new( $param_obj );
+my $ids_aref = $justify_obj->get_ordered_ids_aref(); # Gives ids in analysis
+
+#********* NORMALLY NEED THIS. TOOK OUT FOR TESTING PURPOSES ***********
+#loop trough id's and perform the aggregation of the data
+#foreach my $id ( @$ids_aref ) {
+ #   $logger->info( "Aggregation of $id" );
+  #  $aggregate_obj->aggregate($id);
+#}
 
 $logger->info( "Getting rid of the single quotes in the temp yaml passed to edgeR" );
 my $temp_yaml_file = $param_obj->get_temp_yaml_file();
@@ -139,9 +119,10 @@ close($tfh);
 $logger->info( "Running edgeR" );
 my $r_source_dir = $param_obj->get_Rsource_dir();
 
-# get the edgeR_model path which is the same as the current script
-my $path = dirname(abs_path($0));
-my $cmd = "Rscript --no-save --no-restore $path/edgeR_model.R params_file=\\\"$filename\\\" source_dir=\\\"$r_source_dir\\\"";
+#CHANGE THIS TO MY DESEQ SCRIPT
+my $metaG_file = $param_obj->get_metaG_meta_file();
+my $count_dir = $param_obj->get_count_dir();
+my $cmd = "Rscript /nas02/home/n/c/ncolaian/my_scripts/r_scripts/dafe_deseq.R -d $count_dir -l $ids_out -f gene_counts_id60_cog_agg.txt -m $metaG_file";
 
 $logger->debug( $cmd );
 system($cmd);
@@ -149,6 +130,8 @@ system($cmd);
 #Make the necessary objects
 $logger->info( "Creation of a Decouple and a Da_Table object" );
 my $decouple_obj = DecoupleDa->new( $param_obj );
+#ADD THE MANUAL FILENAME CHANGE
+$decouple_obj->manually_set_cnt_file_name_from_edger("gene_counts_id60_cog_agg_da_vec.txt");
 my $da_table_obj = DaTable->new( { 'grp_order_aref' => $aggregate_obj->get_grp_order_aref(),
                                    'id_order_aref' => $justify_obj->get_ordered_ids_aref(),} );
 
@@ -177,7 +160,7 @@ close($REG_OUT);
 eval{ $da_filter_obj = DaFilter->new( $da_table_obj );
       $param_obj->check_filter_params() };
 if ( my $err = Exception::Class->caught() ) {
-    print "WARNING: See error below only if you intended to print a filtered DaTable\n$err\nThe full DA table will still be printed out. If you'd like to try and filter use the filter_da_table.pl program which can filter using just a full DA table file";
+    print "WARNING: See error below only if you intended to print a filtered DaTable\n$err\nThe full DA table will still be printed out. If you'd like to try and filter use the ____ program which can filter using just a full DA table file";
 }
 else{
     $logger->info( "Filtering the Da_Table" );
@@ -221,8 +204,6 @@ use Scalar::Util::Numeric qw(isneg isint isfloat);
 use lib "/proj/cdjones_lab/ncolaian/MyX-Generic-v0.0.2/lib/MyX";
 use MyX::Generic;
 use YAML::XS qw(LoadFile);
-use Cwd qw(abs_path)
-use File::Basename
 
 =head1 INHERIT
 
@@ -230,13 +211,11 @@ use File::Basename
     
 =head1 SYNOPSIS
 
-    perl edgeR_driver.pl -{y|x} [-no_agg]
+    perl edgeR_driver.pl -{y|x}
     
     -yml_file | y =>    This is a yaml parameter file that contains all the     parameters needed for the analysis
     
     -xml_file | x =>    This is a xml parameter file that contains all the parameters needed for the analysis
-    
-    -no_agg       =>    Optional flag that will skip the memory intensive aggregation step if the file has already been created by previous runs.
     
     ATTENTION: You must pass either a yaml or xml file. For more information about passing in filter parameters check DaFilter.pm documentation
     
