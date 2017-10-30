@@ -2,7 +2,7 @@
 
 ### Description
 # creates a boxplot of points where each point shows the fraction
-# of the genome that has COG annotations.
+# of the genome that has feature (ie COG)  annotations.
 
 ### R Libraries
 require("getopt", quietly=T)
@@ -22,6 +22,7 @@ verbose = FALSE
 params = matrix(c(
   "data", "d", 1, "character",
   "out_fig", "o", 1, "character",
+  "feat", "f", 1, "character",
   "verbose", "v", 0, "logical"
   ), byrow=TRUE, ncol=4)
 opt = getopt(params)
@@ -36,12 +37,15 @@ if (! is.null(opt$verbose)) {
 main = function() {
 	data = read.table(opt$data, header=F, sep="\t")
 
+	# set the title
+	title = paste("Fraction of ", opt$feat, "-Annotated ORFs per Genome", sep="")
+
 	p = ggplot(data, aes(y=V2, x=1)) + 
 		geom_boxplot(outlier.size=NA) +
 		geom_jitter(width=0.3) +
 		xlab("") +
 		ylab("Fraction") +
-		ggtitle("Fraction of Genome with COG Annotations") +
+		ggtitle(title) +
 		coord_flip() +
 		theme(text = element_text(size=20),
 				plot.title = element_text(hjust = 0.5),
