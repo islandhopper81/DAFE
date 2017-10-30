@@ -1,9 +1,9 @@
 #!/usr/bin/env perl
 
-# calculates the average number of COGs in a genome
+# calculates the average number of features (ie cogs)  in a genome
 # for all the genomes in the database.
 
-# also calculates the number of COGs across all genomes
+# also calculates the number of features across all genomes
 
 use strict;
 use warnings;
@@ -23,11 +23,12 @@ sub check_params;
 sub _is_defined;
 
 # Variables #
-my ($db, $out_file, $help, $man);
+my ($db, $out_file, $feat, $help, $man);
 
 my $options_okay = GetOptions (
     "db:s" => \$db,
 	"out_file:s" => \$out_file,
+	"feat:s" => \$feat,
     "help|h" => \$help,                  # flag
     "man" => \$man,                     # flag (print full man page)
 );
@@ -57,7 +58,7 @@ my @percents = ();
 my $annote_file;
 my $tbl = Table->new();
 my $tot_genes = 0;
-my $tot_cogs = 0;
+my $tot_feats = 0;
 my $perc;
 foreach my $file ( readdir($DH) ) {
 	if ( $file =~ m/^\./ ) {next;}
@@ -65,7 +66,7 @@ foreach my $file ( readdir($DH) ) {
 	$logger->debug("file: $file\n");
 	$tbl->reset();
 	$tot_genes = 0;
-	$tot_cogs = 0;
+	$tot_feats = 0;
 
 	$annote_file = "$db/$file/all_annote.txt";
 	$logger->debug("annote_file: $annote_file\n");
@@ -78,12 +79,12 @@ foreach my $file ( readdir($DH) ) {
 
 	foreach my $r ( @{$tbl->get_row_names()} ) {
 		$tot_genes++;
-		if ( $tbl->get_value_at($r, "cog") ne "NA" ) {
-			$tot_cogs++;
+		if ( $tbl->get_value_at($r, $feat) ne "NA" ) {
+			$tot_feats++;
 		}
 	}
 
-	$perc = $tot_cogs / $tot_genes;
+	$perc = $tot_feats / $tot_genes;
 	push @percents, $perc;
 	$logger->debug("perc: $perc\n"); 
 
@@ -97,7 +98,7 @@ foreach my $p ( @percents ) {
 }
 
 my $res = ($tot_perc / scalar @percents) * 100;
-print "Final average number of COG annotations per genome: $res\n";
+print "Final average number of $feat annotations per genome: $res\n";
 
 closedir($DH);
 
@@ -114,6 +115,10 @@ sub check_params {
 	if ( ! defined $out_file ) { 
 		pod2usage(-message => "ERROR: required --out_file not defined\n\n",
 					-exitval => 2); 
+	}
+	if ( ! defined $feat ) { 
+		$feat = "cog";
+		$logger->info("Setting --feat to cog");
 	}
 
 	# make sure required directories exist
@@ -132,19 +137,21 @@ __END__
 
 =head1 NAME
 
-[NAME].pl - [DESCRIPTION]
+calc_avg_cogs_per_genome.pl - calculates the acverage number of features (ie cogs) per genome
 
 
 =head1 VERSION
 
+my ($db, $out_file, $feat, $help, $man);
 This documentation refers to version 0.0.1
 
 
 =head1 SYNOPSIS
 
-    [NAME].pl
-        -f my_file.txt
-        -v 10
+    calc_avg_cogs_per_genome.pl
+        --db dafe_db
+        --out_file cogs_per_genome.txt
+        --feat cog
         
         [--help]
         [--man]
@@ -153,8 +160,9 @@ This documentation refers to version 0.0.1
         [--quiet]
         [--logfile logfile.log]
 
-    --file | -f     Path to an input file
-    --var | -v      Path to an input variable
+    --db            Path to DAFE database
+    --out_file      Path to output file
+    --feat          The feature to be counted. Must match column in all_annote.txt
     --help | -h     Prints USAGE statement
     --man           Prints the man page
     --debug	        Prints Log4perl DEBUG+ messages
@@ -165,13 +173,19 @@ This documentation refers to version 0.0.1
 
 =head1 ARGUMENTS
     
-=head2 --file | -f
+=head2 --db
 
-Path to an input file
+Path to DAFE database
     
-=head2 --var | -v
+=head2 --out_file
 
-Path to an input variable   
+Path to output file
+
+=head2 --feat
+
+The feature to be counted.  This must match a column in the all_annote.txt
+file in each of the genomes in the DAFE database.
+DEFAULT: cog
  
 =head2 [--help | -h]
     
