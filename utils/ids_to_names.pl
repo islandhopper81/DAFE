@@ -22,12 +22,13 @@ sub check_params;
 sub _is_defined;
 
 # Variables #
-my ($in_file, $out_file, $meta_file, $help, $man);
+my ($in_file, $out_file, $meta_file, $genus, $help, $man);
 
 my $options_okay = GetOptions (
     "in_file:s" => \$in_file,
     "out_file:s" => \$out_file,
 	"meta_file:s" => \$meta_file,
+	"genus:s" => \$genus,
     "help|h" => \$help,                  # flag
     "man" => \$man,                     # flag (print full man page)
 );
@@ -47,27 +48,12 @@ check_params();
 ids_to_names({
 	in_file => $in_file,
 	out_file => $out_file,
-	meta_file => $meta_file
+	meta_file => $meta_file,
+	genus => $genus
 });
 
-# read in the metadata table
-#my $meta_tbl = Table->new();
-#$meta_tbl->load_from_file($meta_file);
 
-# slurp in the in_file
-#my $in_text = read_file($in_file);
 
-#foreach my $r ( @{$meta_tbl->get_row_names()} ) {
-#	my $name = $meta_tbl->get_value_at($r, "Name");
-#	$in_text =~ s/$r/$name/g;
-#}
-
-#open my $OUT, ">", $out_file
-#	or $logger->logdie("Cannot open --out_file: $out_file");
-
-#print $OUT $in_text;
-
-#close($OUT);
 
 ########
 # Subs #
@@ -86,6 +72,11 @@ sub check_params {
 		pod2usage(-message => "ERROR: required --meta_file not defined\n\n",
 					-exitval => 2); 
 	}
+	if ( ! defined $genus ) {
+		$logger->info("Setting --genus to F");
+		$genus = "F"
+	}
+	$genus = to_bool($genus);
 
 	# make sure required files are non-empty
 	if ( defined $in_file and ! -e $in_file ) { 
@@ -127,6 +118,7 @@ This documentation refers to version 0.0.1
         --in_file my_in_file.txt
         --out_file my_out_file.txt
 		--meta_file reference_metadata.txt
+		--genus "F"
         
         [--help]
         [--man]
@@ -138,6 +130,7 @@ This documentation refers to version 0.0.1
     --in_file       Path to an input file
 	--out_file      Path to output file that will have names in place of IDs
 	--meta_file     Path to metadata table for genomes
+    --genus         Boolean indicating to only print the genus
     --help | -h     Prints USAGE statement
     --man           Prints the man page
     --debug	        Prints Log4perl DEBUG+ messages

@@ -181,16 +181,22 @@ Readonly::Scalar my $ABS => -4;  # not in genome
 		
 		$logger->debug("Calling DAFE::Utils::ids_to_names");
 
-		my $usage = "ids_to_names({[str] | [in_file, out_file], meta_file})";
+		my $usage = "ids_to_names({[str] | [in_file, out_file, genus], meta_file})";
 		my $str = $params_href->{"str"};
 		my $meta_file = $params_href->{"meta_file"};
 		my $in_file = $params_href->{"in_file"};
 		my $out_file = $params_href->{"out_file"};
+		my $genus = $params_href->{"genus"};
 
 		$logger->debug("str: $str") if defined $str;
 		$logger->debug("in_file: $in_file") if defined $in_file;
 		$logger->debug("out_file: $out_file") if defined $out_file;
+		$logger->debug("genus: $genus") if defined $genus;
 		$logger->debug("meta_file: $meta_file");  # this is required.
+		
+		# set the genus boolean.  if T then only the genus is returned
+		if ( ! defined $genus ) { $genus = 0; }
+		$genus = to_bool($genus);
 
 		
 		# load the metadata file
@@ -200,7 +206,7 @@ Readonly::Scalar my $ABS => -4;  # not in genome
 
 		if ( is_defined($str) ) {
 			$logger->debug("Opperationg on string");
-			return(_ids_to_names_str($str, $meta_tbl));
+			return(_ids_to_names_str($str, $meta_tbl, $genus));
 		}
 		elsif ( is_defined($in_file) ) {
 			$logger->debug("Opperating on file");
@@ -210,7 +216,7 @@ Readonly::Scalar my $ABS => -4;  # not in genome
 			# slurp in the in_file
 			my $text = read_file($in_file);
 
-			$text = _ids_to_names_str($text, $meta_tbl);
+			$text = _ids_to_names_str($text, $meta_tbl, $genus);
 
 			open my $OUT, ">", $out_file
 				or $logger->logdie("Cannot open --out_file: $out_file");
@@ -230,8 +236,9 @@ Readonly::Scalar my $ABS => -4;  # not in genome
 	}
 
 	sub _ids_to_names_str {
-		my ($str, $meta_tbl) = @_;
+		my ($str, $meta_tbl, $genus) = @_;
 		$logger->debug("str: $str");
+		$logger->debug("genus: $genus");
 
 		foreach my $r ( @{$meta_tbl->get_row_names()} ) { 
 		#	$logger->debug("Looking for ID: $r");
@@ -245,6 +252,11 @@ Readonly::Scalar my $ABS => -4;  # not in genome
 				$name =~ s/:/_/g;
 			}
 		
+			# save only the genus if $genus is set to true
+			if ( $genus == 1 and $name =~ m/^(\S+)\s/ ) {
+				$name = $1;
+			}
+			
 			# do the name/id swap
 			$str =~ s/$r/$name/g;
 		}
