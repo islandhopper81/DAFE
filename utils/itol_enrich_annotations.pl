@@ -18,14 +18,18 @@ use UtilSY qw(:all);
 use Table;
 
 # Subroutines #
+sub print_header;
 sub check_params;
 
 # Variables #
-my ($da_file, $feat_name, $up, $dn, $out_file, $help, $man);
+my ($da_file, $feat_name, $da_tbl_file, $out_file_pre, $up, $dn, $out_file,
+	$help, $man);
 
 my $options_okay = GetOptions (
     "da_file:s" => \$da_file,
 	"feat_name:s" => \$feat_name,
+	"da_tbl_file:s" => \$da_tbl_file,
+	"out_file_pre:s" => \$out_file_pre,
 	"up:s" => \$up,
 	"dn:s" => \$dn, 
     "out_file:s" => \$out_file,
@@ -42,7 +46,15 @@ Readonly::Scalar my $NS => 0;
 Readonly::Scalar my $DEP => -1; 
 Readonly::Scalar my $LOW => -2; 
 Readonly::Scalar my $UMS => -3; 
-Readonly::Scalar my $ABS => -4; 
+Readonly::Scalar my $ABS => -4;
+
+# set the colors
+Readonly::Scalar my $ENR_col => "rgb(251,0,5)";
+Readonly::Scalar my $DEP_col => "rgb(0,23,252)";
+Readonly::Scalar my $NS_col => "rgb(255,253,29)";
+Readonly::Scalar my $LOW_col => "rgb(255,255,235)";
+Readonly::Scalar my $UMS_col => "rgb(201,201,201)";
+Readonly::Scalar my $ABS_col => "rgb(153,153,153)";
 
 # check for input errors
 if ( $help ) { pod2usage(0) }
@@ -53,93 +65,122 @@ check_params();
 ########
 # MAIN #
 ########
-# read in the reference annotation table
-my $ref_tbl = Table->new();
-$ref_tbl->load_from_file($da_file, "\t", "F"); # no col headers
-
-# open the output file
-open my $OUT, ">", $out_file or
-	$logger->logdie("Cannot open --out_file $out_file");
-
-# print the header info
-print $OUT "DATASET_COLORSTRIP\n";
-print $OUT "SEPARATOR TAB\n";
-print $OUT "DATASET_LABEL\t$feat_name\n";
-print $OUT "COLOR\t#ff0000\n";
-
-
-# set the colors
-my $ENR_col = "rgb(251,0,5)";
-my $DEP_col = "rgb(0,23,252)";
-my $NS_col = "rgb(255,253,29)";
-my $LOW_col = "rgb(255,255,235)";
-my $UMS_col = "rgb(201,201,201)";
-my $ABS_col = "rgb(153,153,153)";
-
-# print the legend information
-print $OUT "LEGEND_TITLE\t$feat_name\n";
-print $OUT "LEGEND_SHAPES\t1\t1\t1\t1\t1\t1\n";
-print $OUT "LEGEND_COLORS\t$ENR_col\t$DEP_col\t$NS_col\t$LOW_col\t$UMS_col\t$ABS_col\n";
-print $OUT "LEGEND_LABELS\t$up Enriched\t$dn Enriched\tNot Enriched\tLow Abundance\tUnmeasurable\tAbsent\n";
-
-
-# print the data for each genome
-print $OUT "\nDATA\n";
-
-# each row is a genome
-foreach my $g ( @{$ref_tbl->get_row_names()} ) { 
-
-	# remove the "X" that might be on the front of the genome name
-	my $name;
-	if ( $g =~ m/^X(\w+)/ ) {
-		$name = $1;
-	}
-	else { 
-		$name = $g
-	}
-    print $OUT "$name\t";
-	
-	# remember that the columns names are integers starting at 0
-	# because there are no explicit names in the files
-	my $val = $ref_tbl->get_value_at($g, "0");
-	
-	if ( $val eq $ENR ) {
-		print $OUT $ENR_col . "\n";
-	}
-	elsif ( $val eq $DEP ) {
-		print $OUT $DEP_col . "\n";
-	}
-	elsif ( $val eq $NS ) {
-		print $OUT $NS_col . "\n";
-	}
-	elsif ( $val eq $LOW ) {
-		print $OUT $LOW_col . "\n";
-	}
-	elsif ( $val eq $UMS ) {
-		print $OUT $UMS_col . "\n";
-	}
-	elsif ( $val eq $ABS ) {
-		print $OUT $ABS_col . "\n";
-	}
-	else {
-		$logger->warn("Unrecognized DA value ($val) at genome: $g");
-	}
+# read in the da values
+$logger->debug("Reading in DA values");
+my $da_tbl = Table->new();
+if ( defined $da_file ) {
+	$da_tbl->load_from_file($da_file, "\t", "F"); # no col headers
+}
+elsif ( defined $da_tbl_file ) {
+	$da_tbl->load_from_file($da_tbl_file);
+	$da_tbl->transpose();  # now the rows should be genomes and cols features
 }
 
+# loop through each column which is a feature
+# I need to make a seperate output file for each feature
+foreach my $col ( @{$da_tbl->get_col_names()} ) {
+	$logger->debug("Starting col: $col");
+	
+	# open the output file
+	$logger->debug("\topen output file");
+	my $OUT;
+	if ( defined $da_tbl_file ) {
+		$out_file = "$out_file_pre" . "_" . $col . ".txt";
+		open $OUT, ">", $out_file;
+	}
+	else {
+		# in this case I am doing the original method with only one feature
+		open $OUT, ">", $out_file;
+	}
+	
+	$logger->debug("\tprint header");
+	print_header($OUT, $col);
 
-close($OUT);
+	# loop through each row which is a genome
+	foreach my $g ( @{$da_tbl->get_row_names()} ) {
+		$logger->debug("\tstarting genome: $g");
+	
+		# remove the "X" that might be on the front of the genome name
+		my $name;
+		if ( $g =~ m/^X(\w+)/ ) {
+			$name = $1;
+		}
+		else { 
+			$name = $g
+		}
+		print $OUT "$name\t";
+		
+		# remember that the columns names are integers starting at 0
+		# because there are no explicit names in the files
+		my $val;
+		if ( defined $da_file ) {
+			$val = $da_tbl->get_value_at($g, "0");
+		}
+		else {
+			$val = $da_tbl->get_value_at($g, $col);
+		}
+		
+		if ( $val eq $ENR ) {
+			print $OUT $ENR_col . "\n";
+		}
+		elsif ( $val eq $DEP ) {
+			print $OUT $DEP_col . "\n";
+		}
+		elsif ( $val eq $NS ) {
+			print $OUT $NS_col . "\n";
+		}
+		elsif ( $val eq $LOW ) {
+			print $OUT $LOW_col . "\n";
+		}
+		elsif ( $val eq $UMS ) {
+			print $OUT $UMS_col . "\n";
+		}
+		elsif ( $val eq $ABS ) {
+			print $OUT $ABS_col . "\n";
+		}
+		else {
+			$logger->warn("Unrecognized DA value ($val) at genome: $g");
+		}
+	}
+	
+	# close the output file so I can open another one in the next loop
+	close($OUT);
+}
 
 
 ########
 # Subs #
 ########
+sub print_header {
+	my ($fh, $feat_name) = @_;
+	# note: this function uses a lot of global variables
+	
+	# print the header info
+	print $fh "DATASET_COLORSTRIP\n";
+	print $fh "SEPARATOR TAB\n";
+	print $fh "DATASET_LABEL\t$feat_name\n";
+	print $fh "COLOR\t#ff0000\n";
+	
+	# print the legend information
+	print $fh "LEGEND_TITLE\t$feat_name\n";
+	print $fh "LEGEND_SHAPES\t1\t1\t1\t1\t1\t1\n";
+	print $fh "LEGEND_COLORS\t$ENR_col\t$DEP_col\t$NS_col\t$LOW_col\t$UMS_col\t$ABS_col\n";
+	print $fh "LEGEND_LABELS\t$up Enriched\t$dn Enriched\tNot Enriched\tLow Abundance\tUnmeasurable\tAbsent\n";
+	
+	
+	# print the data for each genome
+	print $fh "\nDATA\n";
+	
+	return(1);
+}
+
 sub check_params {
 	# check for required variables
-	if ( ! defined $da_file ) { 
-		pod2usage(-message => "ERROR: required --da_file not defined\n\n",
+	if ( ! defined $da_file and ! defined $da_tbl_file ) { 
+		pod2usage(-message => "ERROR: required --da_file or --da_tbl_file not defined\n\n",
 					-exitval => 2); 
 	}
-	if ( ! defined $feat_name ) { 
+	if ( defined $da_file and ! defined $feat_name ) { 
 		pod2usage(-message => "ERROR: required --feat_name not defined\n\n",
 					-exitval => 2); 
 	}
@@ -151,15 +192,48 @@ sub check_params {
 		pod2usage(-message => "ERROR: required --dn not defined\n\n",
 					-exitval => 2); 
 	}
-	if ( ! defined $out_file ) {
+	if ( defined $da_file and ! defined $out_file ) {
 		pod2usage(-message => "ERROR: required --out_file not defined\n\n",
 					-exitval => 2);
+	}
+	if ( ! defined $out_file_pre ) {
+		$out_file_pre = "itol_enrich";
+		$logger->info("Setting --out_file_pre: $out_file_pre");
 	}
 
 	# make sure required files are non-empty
 	if ( defined $da_file and ! -e $da_file ) { 
 		pod2usage(-message => "ERROR: --da_file $da_file is an empty file\n\n",
 					-exitval => 2);
+	}
+	
+	if ( defined $da_tbl_file and ! -e $da_tbl_file ) { 
+		pod2usage(-message => "ERROR: --da_tbl_file $da_tbl_file is an empty file\n\n",
+					-exitval => 2);
+	}
+	
+	# check if the output file is writable
+	if ( defined $out_file ) {
+		eval {
+			open my $TMP, ">", $out_file;
+			close($TMP);
+			system("rm $out_file");
+		};
+		if ( $@ ) {
+			pod2usage(-message => "ERROR: --out_file not writable\n\n",
+						-exitval => 2);
+		}
+	}
+	if ( defined $out_file_pre and ! -w $out_file_pre ) {
+		eval {
+			open my $TMP, ">", $out_file_pre;
+			close($TMP);
+			system("rm $out_file_pre");
+		};
+		if ( $@ ) {
+			pod2usage(-message => "ERROR: --out_file_pre not writable\n\n",
+						-exitval => 2);
+		}
 	}
 
 	# make sure required directories exist
@@ -190,6 +264,8 @@ This documentation refers to version 0.0.1
     itol_enrich_annotations.pl
         --da_file COG0001_da.txt
         --feat_name COG0001
+        [--da_tbl_file COG0001_da_tbl.txt]
+        [--out_file_pre itol_enrich]
         --up RZ
         --dn BK
         --out_file COG0001_itol.txt
@@ -201,11 +277,14 @@ This documentation refers to version 0.0.1
         [--quiet]
         [--logfile logfile.log]
 
-    --da_file     Path to an input file of da calls for each genome for this feature
-    --feat_name      Name of the feature to be use for setting the legends
-    --up             Name of up enrichments for setting the legend
-    --dn             Name of down enrichments for setting the legend
-    --out_file       Path to output file
+    --da_file            Path to an input file of da calls for each genome for this feature
+    --feat_name          Name of the feature to be use for setting the legends
+    [--da_tbl_file]           Path to a DA table file
+    [--out_file_pre]     File prefix to use in conjunction with --da_tbl
+    --up                 Name of up enrichments for setting the legend
+    --dn                 Name of down enrichments for setting the legend
+    --out_file           Path to output file
+	
     --help | -h     Prints USAGE statement
     --man           Prints the man page
     --debug	        Prints Log4perl DEBUG+ messages
@@ -216,13 +295,43 @@ This documentation refers to version 0.0.1
 
 =head1 ARGUMENTS
     
-=head2 --file | -f
+=head2 --da_file
 
-Path to an input file
+Path to an input file of da calls for each genome for this feature.  This is
+only used when you want to send in one features. This file can look something
+like this:
+
+genome_1	0
+genome_2	1
+genome_3	1
+
+Notice that there is no header.
     
-=head2 --var | -v
+=head2 --feat_name
 
-Path to an input variable   
+Name of the feature to be used for setting the legend title or if the --da_tbl
+parameter is used it will keep only a single feature from the table.  This
+parameter is required when you use --da_file
+
+=head2 [--da_tbl_file]
+
+Path to a DA table file.  Genomes are columns and rows are features.  If the
+--feat_name is used then only that feature will be used from the file.
+Otherwise an annotation file for each feature is created.  If this paramter
+is used the --da_file will be ignored.
+
+=head2 [--out_file_pre]
+
+Ouptut file prefix.  It will be used to name the multiple files created when
+using the --da_tbl parameter.
+
+=head2 [--up]
+
+Name of up enrichments for setting the legend values (ie RZ)
+
+=head2 [--dn]
+
+Name of down enrichments for setting the legend values (ie BK)
  
 =head2 [--help | -h]
     

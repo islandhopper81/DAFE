@@ -63,24 +63,29 @@ check_params();
 # Do the following opperations on the given genome
 
 # look for the da_vec file and open it
+$logger->debug("open the DA vec file");
 my $da_vec_file = "$dafe_out_dir/$genome/$da_vec_file_name";
 my $da_vec_tbl = Table::Numeric->new();
 $da_vec_tbl->load_from_file($da_vec_file, " ", "F");
 
 # open the all_annote
+$logger->debug("open the all annote file");
 my $annote_file = "$dafe_db_dir/$genome/$annote_file_name";
 my $annote_tbl = Table->new();
 $annote_tbl->load_from_file($annote_file);
 
 # create a look table of all the values present in the genomes for the
 # given feature column
+$logger->debug("create lookup table of features in genome");
 my $is_present_aref = $annote_tbl->get_col($feat_col);
 my $is_present_href = aref_to_href($is_present_aref); # from UtilSY
 
 
 # go through each value in the all_anote file.
 my $feat;
+print aref_to_str($da_vec_tbl->get_col_names()) . "\n";
 foreach my $feat ( @{$da_vec_tbl->get_row_names()} ) {
+	$logger->debug("Starting feature: $feat");
 	# go through each feature in the da_vec to determine if it is in the
 	# annotation file.  if it is that means it is an UMS feature or greater,
 	# otherwise it is ABS.
@@ -96,7 +101,7 @@ foreach my $feat ( @{$da_vec_tbl->get_row_names()} ) {
 # output the new table to a temp file then move it to overwrite the old one
 my ($fh, $filename) = tempfile();
 close($fh);
-$da_vec_tbl->save($filename);
+$da_vec_tbl->save($filename, " ", "F");
 system("mv $filename $da_vec_file");
 
 
