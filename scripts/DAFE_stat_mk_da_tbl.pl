@@ -14,16 +14,20 @@ use Log::Log4perl qw(:easy);
 use Log::Log4perl::CommandLine qw(:all);
 use UtilSY qw(:all);
 use Table;
+use Table::Numeric;
 use DAFE::Utils qw(:all);
 use List::Util qw(sum);
 
 # Subroutines #
+sub use_da_vec;
+sub _is_UMS;
 sub check_params;
 
 # Variables #
 my ($dafe_out, $dafe_db, $features_file, $feature_type, $genomes_file, 
 	$tags_file, $annote_file, $count_file, $sample_meta_file, $test_col, $t1, $t2,
 	$out_file, $min_s, $min_c,
+	$use_da_vec, $da_vec_file_name,
 	$help, $man);
 
 # Global Variables #
@@ -53,6 +57,8 @@ my $options_okay = GetOptions (
 	"out_file:s" => \$out_file,
 	"min_s:s" => \$min_s,
 	"min_c:s" => \$min_c,
+	"use_da_vec:s" => \$use_da_vec,
+	"da_vec_file_name:s" => \$da_vec_file_name,
     "help|h" => \$help,                  # flag
     "man" => \$man,                     # flag (print full man page)
 );
@@ -80,7 +86,7 @@ my $f_aref;
 eval { 
 	check_file($features_file);
 	$logger->info("Loading features from --features_file");
-	$f_aref = load_lines($features_file);
+	$f_aref = load_lines($features_file, "\t");
 };
 if ( $@ ) {
 	$logger->info("Loading all features for genomes in --genomes_file");
@@ -96,6 +102,18 @@ $out_tbl->_set_col_names($g_aref);
 foreach my $f ( @{$f_aref} ) {
 	my @vals = ($ABS) x scalar @{$g_aref};
 	$out_tbl->add_row($f, \@vals, $g_aref);
+}
+
+# check to see if I should do this using the da vec file
+if ( $use_da_vec == 1 ) {
+	$logger->info("Looking at the DA vector files");
+	
+	use_da_vec();  # generate the DA table using the DA vector file
+	
+	# print the output file
+	$out_tbl->save($out_file);
+	
+	exit 0;  # exit gracefully no that the DA matrix has been output
 }
 
 # load the sample metadata file
@@ -206,6 +224,37 @@ $out_tbl->save($out_file);
 ########
 # Subs #
 ########
+sub use_da_vec {
+	# this function builds the DA table using the pre-calculated DA vector that
+	# is saved in the dafe_out. NOTE, this function uses many global variables
+	
+	# for each genome
+		# open the da vector file
+		# look for features in that file
+		# add the feature value to the output table
+		
+	my $da_vec = Table::Numeric->new();
+	foreach my $g ( @{$g_aref} ) {
+		$logger->info("Genome: $g");
+		my $file = "$dafe_out/$g/$da_vec_file_name";
+		if ( ! -e $file ) {
+			$logger->warn("No DA vector file: $g");
+		}
+		
+		# the da vec file has a space delimitor and no column header
+		$da_vec->load_from_file($file, " ", "F");
+		
+		# go through each feature and set it in the output table
+		foreach my $f ( @{$f_aref} ) {
+			if ( ! $da_vec->has_row($f) ) {
+				$logger->warn("No DA value at $g, $f");
+			}
+			
+			$out_tbl->set_value_at($f, $g, $da_vec->get_value_at($f, 0));
+		}
+	}
+}
+
 sub _is_UMS {
 	my ($tbl, $f) = @_;
 	# table is a count table
@@ -215,52 +264,61 @@ sub _is_UMS {
 }
 
 sub check_params {
+	# first check the use_da_vec variable because it will determine what other
+	# parameters are required.
+	eval{
+		$use_da_vec = to_bool($use_da_vec);
+	};
+	if ( my $e = MyX::Generic::Undef::Param->caught() ) {
+		$use_da_vec = 0;  # set to false as the defualt
+	}
+	elsif ( $e = MyX::Generic::BadValue->caught() ) {
+		pod2usage(-message => "ERROR: --use_da_vec must be boolean\n\n",
+				-exitval => 2);
+	}
+	
 	# check for required variables
 	if ( ! defined $dafe_out ) { 
 		pod2usage(-message => "ERROR: required --dafe_out not defined\n\n",
 					-exitval => 2); 
 	}
-	if ( ! defined $dafe_db ) { 
-		pod2usage(-message => "ERROR: required --dafe_db not defined\n\n",
-					-exitval => 2); 
-	}
-	#if ( ! defined $features_file ) {
-	#	pod2usage(-message => "ERROR: required --features_file not defined\n\n",
-	#				-exitval => 2);
-	#}
-	if ( ! defined $feature_type ) {
-		pod2usage(-message => "ERROR: required --feature_type not defined\n\n",
-					-exitval => 2);
-	}
 	if ( ! defined $genomes_file ) {
 		pod2usage(-message => "ERROR: required --genomes_file not defined\n\n",
 					-exitval => 2);
 	}
-	if ( ! defined $tags_file ) {
+	if ( ! defined $dafe_db and ! $use_da_vec ) { 
+		pod2usage(-message => "ERROR: required --dafe_db not defined\n\n",
+					-exitval => 2); 
+	}
+	if ( ! defined $feature_type and ! $use_da_vec ) {
+		pod2usage(-message => "ERROR: required --feature_type not defined\n\n",
+					-exitval => 2);
+	}
+	if ( ! defined $tags_file and ! $use_da_vec ) {
 		pod2usage(-message => "ERROR: required --tags_file not defined\n\n",
 					-exitval => 2);
 	}
-	if ( ! defined $annote_file ) {
+	if ( ! defined $annote_file and ! $use_da_vec ) {
 		pod2usage(-message => "ERROR: required --annote_file not defined\n\n",
 					-exitval => 2);
 	}
-	if ( ! defined $count_file ) {
+	if ( ! defined $count_file and ! $use_da_vec ) {
 		pod2usage(-message => "ERROR: required --count_file not defined\n\n",
 					-exitval => 2);
 	}
-	if ( ! defined $sample_meta_file ) {
+	if ( ! defined $sample_meta_file and ! $use_da_vec ) {
 		pod2usage(-message => "ERROR: required --sample_meta_file not defined\n\n",
 					-exitval => 2);
 	}
-	if ( ! defined $test_col ) {
+	if ( ! defined $test_col and ! $use_da_vec ) {
 		pod2usage(-message => "ERROR: required --test_col not defined\n\n",
 					-exitval => 2);
 	}
-	if ( ! defined $t1 ) {
+	if ( ! defined $t1 and ! $use_da_vec ) {
 		pod2usage(-message => "ERROR: required --t1 not defined\n\n",
 					-exitval => 2);
 	}
-	if ( ! defined $t2 ) {
+	if ( ! defined $t2 and ! $use_da_vec ) {
 		pod2usage(-message => "ERROR: required --t2 not defined\n\n",
 					-exitval => 2);
 	}
@@ -268,13 +326,17 @@ sub check_params {
 		pod2usage(-message => "ERROR: required --out_file not defined\n\n",
 					-exitval => 2);
 	}
-	if ( ! defined $min_s ) {
+	if ( ! defined $min_s and ! $use_da_vec ) {
 		$logger->info("Setting --min_s to " . $MIN_S);
 		$min_s = $MIN_S;
 	}
-	if ( ! defined $min_c ) {
+	if ( ! defined $min_c and ! $use_da_vec ) {
 		$logger->info("Setting --min_c to " . $MIN_C);
 		$min_c = $MIN_C;
+	}
+	if ( ! defined $da_vec_file_name and $use_da_vec ) {
+		pod2usage(-message => "ERROR: --da_vec_file_name required when --use_da_vec True\n\n",
+					-exitval => 2);
 	}
 
 	# make sure required files are non-empty
@@ -293,12 +355,12 @@ sub check_params {
 	}
 
 	# make sure required directories exist
-	if ( ! -d $dafe_db ) { 
-		pod2usage(-message => "ERROR: --dafe_db is not a directory\n\n",
-					-exitval => 2); 
-	}
 	if ( ! -d $dafe_out ) { 
 		pod2usage(-message => "ERROR: --dafe_out is not a directory\n\n",
+					-exitval => 2); 
+	}
+	if ( ! $use_da_vec and ! -d $dafe_db ) { 
+		pod2usage(-message => "ERROR: --dafe_db is not a directory\n\n",
 					-exitval => 2); 
 	}
 	
@@ -336,6 +398,9 @@ This documentation refers to version 0.0.1
         --t1 RZ
         --t2 BK
         --out_file my_da_tbl.txt
+        [--use_da_vec "F"]
+        [--da_vec_file_name gene_counts_id60_cog_agg_da_vec.txt]
+		
         [--help]
         [--man]
         [--debug]
@@ -352,6 +417,7 @@ This documentation refers to version 0.0.1
     --annote_file    Name of annotation file in --dafe_db
     --counts_file    Name of the aggregated counts file in --dafe_out
     --out_file       Path to output DA table file
+	
     --help | -h     Prints USAGE statement
     --man           Prints the man page
     --debug	        Prints Log4perl DEBUG+ messages
