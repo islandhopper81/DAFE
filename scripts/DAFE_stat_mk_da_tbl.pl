@@ -346,10 +346,10 @@ sub check_params {
 	#}
 	# the features file is no long a required parameter
 	if ( defined $genomes_file and ! -e $genomes_file ) { 
-		pod2usage(-message => "ERROR: --genome_file $genomes_file is an empty file\n\n",
+		pod2usage(-message => "ERROR: --genomes_file $genomes_file is an empty file\n\n",
 					-exitval => 2);
 	}
-	if ( defined $sample_meta_file and ! -e $sample_meta_file ) { 
+	if ( is_defined($sample_meta_file) and ! -e $sample_meta_file ) { 
 		pod2usage(-message => "ERROR: --sample_meta_file $sample_meta_file is an empty file\n\n",
 					-exitval => 2);
 	}
