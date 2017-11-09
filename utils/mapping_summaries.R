@@ -53,8 +53,8 @@ main = function() {
 	# make the pa/npa/soil plot
 	p1 = ggplot(meta, aes(x=Label, y=log10(counts))) +
 		geom_boxplot(outlier.size=NA) + 
-		geom_point(position=position_jitter(width=0.25)) +
-		theme(text = element_text(size=20),
+		geom_point(position=position_jitter(width=0.15)) +
+		theme(text = element_text(size=10),
 			plot.title = element_text(hjust = 0.5)) +
 		scale_x_discrete(limits = c("PA", "Soil", "NPA")) +
 		ylab("Reads Mapped (log10)")
@@ -64,21 +64,20 @@ main = function() {
 			#xlab("Plant Association Group")
 
 	out_file = paste(opt$out_prefix, "_pa_npa_soil.pdf", sep="")
-	ggsave(out_file, p1, width=3, height=6) 
+	ggsave(out_file, p1, width=1.25, height=2.5) 
 
 	# make the plot graphed by genome environment
 	p2 = ggplot(meta, aes(x=Source, y=log10(counts))) +
 		geom_boxplot(outlier.size=NA) +
-		geom_point(position=position_jitter(width=.2)) +
-		theme(text = element_text(size=20),
+		geom_point(position=position_jitter(width=.1)) +
+		theme(text = element_text(size=10),
 			plot.title = element_text(hjust = 0.5),
 			axis.text.x = element_text(angle = 90, hjust = 1)) +
-		ggtitle(opt$title) +
 		ylab("Reads Mapped (log10)") +
 		xlab("Isolation Environment")
 
 	out_file = paste(opt$out_prefix, "_iso_env.pdf", sep="")
-	ggsave(out_file, p2)
+	ggsave(out_file, p2, width=3.25, height=2.5)
 
 	# make the plot showing the number of reads that map from each 
 	# metagenome environment
@@ -91,7 +90,7 @@ main = function() {
 	p3 = ggplot(sample_meta, aes(x=fraction, y=counts)) +
 		geom_boxplot(outlier.size=NA) +
 		geom_point(position=position_jitter(width=.2)) +
-		theme(text = element_text(size=20),
+		theme(text = element_text(size=10),
 			plot.title = element_text(hjust=0.5)) +
 		ylab("Reads Mapped (log10)") +
 		xlab("Metagenome Samples")
