@@ -31,7 +31,7 @@ my ($config_file, $dafe_db_dir, $reads_dir, $out_dir, $ref_names_file,
     $cov_stat_file_name, $htseq_file_prefix, $htseq_i, $make_count_tbls_exe,
     $pairs_file, $skip_mapping, $skip_filtering, $skip_htseq, $keep_bam_files,
     $lsf_threads, $lsf_mem, $lsf_queue, $lsf_out_file, $lsf_err_file,
-    $lsf_job_name, 
+    $lsf_job_name, $username,
     $queue_batch_count, $node_batch_count, $queue_max, $runtime_max, $jobs_file,
     $help, $man);
 
@@ -78,6 +78,7 @@ my $options_okay = GetOptions (
     "node_batch_count:i" => \$node_batch_count,
     "queue_max:i" => \$queue_max,
     "runtime_max:i" => \$runtime_max,
+    "user_name:s"   =>  \$username,
     "jobs_file:s" => \$jobs_file,       # a hidden parameter
     "help" => \$help,                   # flag
     "man" => \$man,                     # flag (print full man page)
@@ -453,7 +454,7 @@ sub full_queue {
     
     $logger->debug("Checking if the queue is full");
     
-    my $command = "bjobs | wc -l";
+    my $command = "squeue -u $username | wc -l";
     
     $logger->debug("Running command: $command");
     
@@ -469,12 +470,13 @@ sub full_queue {
     return 1;
 }
 
+#Fixed for slurm
 sub stall {
     my ($job_name) = @_;
     
     $logger->info("Stalling until <$job_name> jobs finish");
     
-    my $command = 'bjobs -J ' . $job_name . " > $out_dir/ACTIVE_JOBS";
+    my $command = 'squeue --name=' . $job_name . " -h > $out_dir/ACTIVE_JOBS";
     `$command`; # run the command
     
     if ( -s "$out_dir/ACTIVE_JOBS" ) {
@@ -583,7 +585,7 @@ sub get_jobs {
                     push @jobs, $command;
                     
                     # start a new command the bsub part and a quote
-                    $command = get_bsub_command() . "\"";
+                    $command = get_bsub_command();
                     $batch_count = 1;
                 }
                 else {
@@ -803,18 +805,21 @@ sub get_mapping_command {
     return($command);
 }
 
+#### THIS HAS BEEN CHANGED TO WORK WITH SLURM ####
 sub get_bsub_command {
     
     # prepend the bsub stuff to the command
     
-    my $bsub = "bsub ";
-    $bsub .= "-M $lsf_mem ";
-    $bsub .= "-q $lsf_queue ";
+    my $bsub = "sbatch ";
+    $bsub .= "--mem=$lsf_mem ";
+    $bsub .= "-p $lsf_queue ";
+    $bsub .= "-t 168:00:00";
     $bsub .= "-n $lsf_threads ";
-    $bsub .= "-R \"span[hosts=1]\" ";
+    $bsub .= "-N 1 ";
     $bsub .= "-o $out_dir/$lsf_out_file ";
     $bsub .= "-e $out_dir/$lsf_err_file ";
     $bsub .= "-J $lsf_job_name ";
+    $bsub .= "--wrap=\"";
     
     return($bsub);
 }
@@ -1024,13 +1029,13 @@ sub check_params {
     # check lsf_mem
     # there are many more checks I should do here
     if ( ! defined $lsf_mem ) {
-        $lsf_mem = 4;
+        $lsf_mem = "4G";
     }
     
     # check lsf_queue
     # there are many more checks I should do here
     if ( ! defined $lsf_queue ) {
-        $lsf_queue = "week";
+        $lsf_queue = "general";
     }
     
     # check lsf_out_file
@@ -1070,6 +1075,10 @@ sub check_params {
     # check runtime_max
     if ( ! defined $runtime_max ) {
         $runtime_max = 561600;  # about 6.5 days
+    }
+    if ( ! defined $username ) {
+        pod2usage(-message => "ERROR: Your longleaf username is required\n\n",
+                  -exitval => 2);
     }
     
     # log the parameters
@@ -1225,7 +1234,7 @@ __END__
 
 =head1 NAME
 
-DAFE_count.pl - Runs read mapping, htseq-count, and bam filtering on the UNC cluster
+DAFE_count.pl - Runs read mapping, htseq-count, and bam filtering on the UNC cluster - Note this has been changed to work with Slurm on Longleaf.
 
 
 =head1 VERSION
@@ -1311,7 +1320,7 @@ This documentation refers to version 0.0.1
     --quiet	= Suppress printing ERROR+ Log4perl messages
     --logfile	= File to save Log4perl messages
     
-    Remember to load the following module if running on Kure/Killdevil
+    Remember to load the following module if running on Slurm
     - bbmap
     - htseq-count
     - bamtools
