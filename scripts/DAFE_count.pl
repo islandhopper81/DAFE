@@ -26,16 +26,6 @@ use DAFE::Count::OutputRestruct;
 sub check_params;
 
 # Variables #
-<<<<<<< HEAD
-my ($config_file, $dafe_db_dir, $reads_dir, $out_dir, $ref_names_file,
-    $sample_names_file, $perc_ids, $perc_ids_aref, $min_perc_id,
-    $read_file_exten, $genome_file_exten, $gff_file_exten, $bam_file_prefix,
-    $cov_stat_file_name, $htseq_file_prefix, $htseq_i, $make_count_tbls_exe,
-    $pairs_file, $skip_mapping, $skip_filtering, $skip_htseq, $keep_bam_files,
-    $lsf_threads, $lsf_mem, $lsf_queue, $lsf_out_file, $lsf_err_file,
-    $lsf_job_name, $username,
-    $queue_batch_count, $node_batch_count, $queue_max, $runtime_max, $jobs_file,
-=======
 my ($config_file, $dafe_db_dir, $combined_db_name, $reads_dir, $out_dir,
     $restruct_out_dir, $ref_names_file, $sample_names_file, $perc_ids,
     $perc_ids_aref, $min_perc_id, $read_file_exten, $genome_file_exten,
