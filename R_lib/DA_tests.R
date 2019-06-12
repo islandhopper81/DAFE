@@ -6,6 +6,17 @@
 # These functions are for doing differential abundance testings on the 
 # output from DAFE_count.pl.
 
+### GLOBALS ###
+# these are the coding for DA values
+ENR = 1   # Enriched
+NS = 0    # Not significantly different
+DEP = -1  # Depleted
+LOW = -2  # Low abundance (too low to run stats on)
+UMS = -3  # Unmeasurable -- there are no reads that map at all
+ABS = -4  # Abset from the genome (probably not used in this script)
+
+###
+
 run_edgeR_grps = function(params_obj) {
   require(edgeR)
   main_dir = getwd()
@@ -20,13 +31,47 @@ run_edgeR_grps = function(params_obj) {
     working_dir = paste(params_obj$working_root_dir, ref, sep="/")
     setwd(working_dir)
     #print(paste("getwd(): ", getwd()))
+
+	# create the output file prefix
+	outfile_prefix = get_out_file_prefix(params_obj)
     
-    # read in the counts
+    # read in the counts -- features are row and samples are cols
     tbl = get_count_tbl(ref, params_obj)
 
-    # create the empty output vector
-    da_vec = as.vector(rep(-2,nrow(tbl)))
+    # create the empty output vector -- set all the value to UMS (unmeasurable)
+    da_vec = as.vector(rep(UMS,nrow(tbl)))
     names(da_vec) = row.names(tbl)
+
+	# filter the count table
+	filt_res = filter(tbl = tbl,
+					metadata = params_obj$metaG_metadata_tbl, 
+					test_col = params_obj$test_col_name,
+					t1 = params_obj$test[1],
+					t2 = params_obj$test[2],
+					min_sample = params_obj$min_sample_count,
+					min_count = params_obj$min_sample_cpm)
+	tbl = filt_res$tbl
+
+	# any features (eg COGs) that are not in the table at all
+	# designate as UMS.  Use LOW to indicate features that we 
+	# can measure but are not statistically testable due to 
+	# low reads counts
+	da_vec[filt_res$low_names] = LOW
+	da_vec[filt_res$ums_or_abs_names] = UMS  # set these as UMS for now. handled later in Decouple.pm
+	
+	# if the table is empty then everything was removed
+	# in this case I want to write out some files and move
+	# to the next genome
+	if ( nrow(tbl) < 1 ) {
+		print("FINISH EARLY -- Didn't pass filter")
+
+		# print the da direction file (they will all be -2)
+		out_f = paste(outfile_prefix, "_da_vec.txt", sep="")
+		write.table(da_vec, out_f, quote=F, col.names=F)
+		
+		# move to the next genome
+		next
+	}
     
     # create the DGEList object (exact test)
     dge = DGEList(counts=tbl, group=params_obj$test_groups)  
@@ -37,27 +82,11 @@ run_edgeR_grps = function(params_obj) {
     # calculte the normalization factors
     dge = calcNormFactors(dge)
     
-    # filter -- by min_sample_count and min_sample_cpm
-    keep = rowSums(cpm(dge) > params_obj$min_sample_cpm) > params_obj$min_sample_count
-    if ( length(keep) == 0 | all(is.na(keep)) ) {
-      # no genes in this genome pass the filter
-      print("FINISH EARLY -- Didn't pass filter")
-      
-      # print the da direction file (they will all be -2)
-      out_f = paste(params_obj$agg_count_file_prefix, "_da_vec.txt", sep="")
-      write.table(da_vec, out_f, quote=F, col.names=F)
-      
-      # move on to the next genome
-      next
-    } else {
-      dge.filt = dge[keep,]
-    }
-    
     # estimate dispersion parameters
     out = tryCatch({
-      dge.filt = estimateCommonDisp(dge.filt)
-      #dge.filt = estimateTrendedDisp(dge.filt)
-      dge.filt = estimateTagwiseDisp(dge.filt)
+      dge = estimateCommonDisp(dge)
+      #dge = estimateTrendedDisp(dge)
+      dge = estimateTagwiseDisp(dge)
       TRUE  # return TRUE.  This is to avoid an unnecessary warning
     }, error = function(err){
       print(paste(err$message))
@@ -67,8 +96,8 @@ run_edgeR_grps = function(params_obj) {
       # dispersion parameters could not be calculated for this genome
       print("FINISH EARLY -- Cannot estimate dispersion")
       
-      # print the da direction file (they will all be -2)
-      out_f = paste(params_obj$agg_count_file_prefix, "_da_vec.txt", sep="")
+      # print the da direction file (they will all be UMS or LOW (unmeasurable or low abundance))
+      out_f = paste(outfile_prefix, "_da_vec.txt", sep="")
       write.table(da_vec, out_f, quote=F, col.names=F)
       
       # move on to the next genome
@@ -76,33 +105,33 @@ run_edgeR_grps = function(params_obj) {
     }
     
     # make the BCV plot
-    out_f = paste(params_obj$agg_count_file_prefix, "_BCV.tiff", sep="")
+    out_f = paste(outfile_prefix, "_BCV.tiff", sep="")
     tiff(out_f)
-    plotBCV(dge.filt)
+    plotBCV(dge)
     dev.off()
     
     # run the exact binomial test
-    exact = exactTest(dge.filt, pair=params_obj$test)
+    exact = exactTest(dge, pair=params_obj$test)
     
     # get table of all tags.
     tags = topTags(exact, n=nrow(tbl))
     
     # save the tables
-    out_f = paste(params_obj$agg_count_file_prefix, "_tags_data.txt", sep="")
+    out_f = paste(outfile_prefix, "_tags_data.txt", sep="")
     write.table(tags, out_f, quote=F)
     
     # summarize differential abundace directionality
-    out_f = paste(params_obj$agg_count_file_prefix, "_da_tbl.txt", sep="")
+    out_f = paste(outfile_prefix, "_da_tbl.txt", sep="")
     da = summerize_da_direction(exact, output_file = out_f)
     
     # write the da_vec file
-    out_f = paste(params_obj$agg_count_file_prefix, "_da_vec.txt", sep="")
+    out_f = paste(outfile_prefix, "_da_vec.txt", sep="")
     da_vec = get_da_vec(tags, da_vec)
     write.table(da_vec, out_f, quote=F, col.names=F)
     
     # Make smear plot
-    out_f = paste(params_obj$agg_count_file_prefix, "_smear.tiff", sep="")
-    make_smear_plot(exact, da, dge.filt, output_file = out_f)
+    #out_f = paste(outfile_prefix, "_smear.tiff", sep="")
+    #make_smear_plot(exact, da, dge, output_file = out_f)
   }
 }
 
@@ -110,9 +139,61 @@ run_edgeR_grps = function(params_obj) {
 
 ### HELPER FUNCTIONs ###
 
+## FILTER ##
+# removes features (e.g. COGs) that have fewer than do not have min_count
+# reads in at least min_sample samples.
+filter = function(tbl, metadata, test_col, t1, t2, min_sample, min_count) {
+	# this function will need to be updated if I ever update the code
+	# to use multiple test groups (eg col, cvi, and oy). Rigth now I have 
+	# assumes that there will only be two test groups considered at one time.
+	# This implies that I can't do things like interaction terms.  If I
+	# ever stop using the exact test this function will have to change
+
+	# the tbl contains features that are ENR, NS, DEP, LOW, UMS, or ABS.
+	# it is easy to tell of something is ENR, NS, or DEP as those are set
+	# when I run the edgeR statistics. Things that are removed from this
+	# table in this function are things that are LOW, UMS, or ABS.  It is
+	# also easy to tell what is LOW because it will have a few reads. I
+	# use Nick's Decouple.pm library to differentiate between UMS and ABS
+	# later on in the pipeline.
+
+
+	# get the sample names for each group
+	t1_names = row.names(metadata[metadata[,test_col] == t1,])
+	t2_names = row.names(metadata[metadata[,test_col] == t2,])
+
+	# make sure the sample names are in the table for all these test
+	t1_names = t1_names[t1_names %in% colnames(tbl)]
+	t2_names = t2_names[t2_names %in% colnames(tbl)]
+
+	# check for the feature in each group
+	t1_keep = apply(tbl[,t1_names], 1, function(x) sum(x > min_count)) > min_sample
+	t2_keep = apply(tbl[,t2_names], 1, function(x) sum(x > min_count)) > min_sample
+
+	# combine the keeps
+	keep = t1_keep & t2_keep
+
+	# get a list of names that are LOW
+	has_counts = apply(tbl, 1, sum) > 0
+	low_names = row.names(tbl[has_counts & !keep,])
+
+	# get a list of names that are UMS or ABS -- things that have no counts
+	ums_or_abs_names = row.names(tbl[!has_counts,])
+
+	# filter the table by removing features that do not pass the filter
+	# also return 
+	res = list(
+			tbl = tbl[keep,], 
+			low_names = low_names,
+			ums_or_abs_names = ums_or_abs_names
+	);
+	return(res)
+}
+
+
 # Makes a da_vec by combining the empty_da_vec
 # with the calls from the tags object.  A vector
-# of DA codes is returned (ie -2,-1,0,1)
+# of DA codes is returned (ie -3,-2,-1,0,1)
 get_da_vec = function(tags, empty_da_vec) {
   # add a da column to the tags table
   da_col = apply(tags$table, 1, function(x) get_da_code(x[1], x[4]))
@@ -125,16 +206,16 @@ get_da_vec = function(tags, empty_da_vec) {
 }
 
 get_da_code = function(logFC, fdr) {
-  da_code = -2
+  da_code = UMS  # set as default to unmeasurable
   
   if ( fdr < 0.05 ) {
     if ( logFC > 0 ) {
-      da_code = 1
+      da_code = ENR # enriched
     } else {
-      da_code = -1
+      da_code = DEP # depleted
     }
   } else {
-    da_code = 0
+    da_code = NS # not significant
   }
   
   return(da_code)
@@ -177,10 +258,16 @@ summerize_da_direction = function(exact_test, da_vec,
 # edgeR module must be sourced to use the function plotSmear
 make_smear_plot = function(exact_test, da_exact, dge, output_file = "smear.tiff",
                            write_bool = T) {
-  datags_exact = rownames(dge)[as.logical(da_exact)]
-  if ( write_bool == T ) { tiff(output_file) }
-  plotSmear(exact_test, de.tags=datags_exact)
-  if ( write_bool == T ) { dev.off() }
+  tryCatch({
+  	datags_exact = rownames(dge)[as.logical(da_exact)]
+  	if ( write_bool == T ) { tiff(output_file) }
+  	plotSmear(exact_test, de.tags=datags_exact)
+  	if ( write_bool == T ) { dev.off() }
+  }, error = function(err) {
+	print("Cannot make smear plot")
+	print(paste(err$message))
+	return(NA)
+  })
 }
 
 ### Gets the count table from each group 
@@ -200,5 +287,20 @@ get_count_tbl = function(count_file, params_obj) {
   return(tbl)
 }
 
-
+### Creates the output file prefix
+# this prefix is used to create all the edgeR output files
+# it is the aggregated count file prefix and the test information
+# combined. This allows for multiple tests to be ran on the same
+# aggregated count file without overwriting the last test's output
+get_out_file_prefix = function(params_obj) {
+      out_f = paste(
+		params_obj$agg_count_file_prefix, 
+		"_",
+		params_obj$test[1],
+		"_v_",
+		params_obj$test[2],
+		sep="")
+	
+	return(out_f)
+}
 

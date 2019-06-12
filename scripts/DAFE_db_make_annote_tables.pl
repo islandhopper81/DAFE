@@ -241,7 +241,10 @@ sub add_to_tbl {
 		
 		# get the gene_id value which MUST be in the first column
         my $gene_id = shift @vals;
-		#my $annote_id = shift @vals;	
+        if ($type ne "gff_annote") {
+            $gene_id = $gene_id;
+        }
+		#my $annote_id = shift @vals;
 		
         $tbl_href->{$gene_id}{$type} = join("\t", @vals);
     }
@@ -275,7 +278,7 @@ sub print_tbl {
 	# print the table values
     foreach my $gene_id ( keys %{$tbl_href} ) {
         $logger->debug("Getting info for gene_id: $gene_id");
-        print $OUT $gene_id, "\t";
+		print $OUT $gene_id, "\t";
         
 		# print all the values from the gff_annote file
         if ( defined $tbl_href->{$gene_id}{"gff_annote"} ) {

@@ -20,6 +20,11 @@ my $usage = "$0 <input gff> <htseq_i>\n";
 my $input_gff = shift or die $usage;
 my $htseq_i = shift;
 
+# get the genome ID from the gff file name
+my @genome = split /\//, $input_gff;
+my $genome_id = $genome[scalar(@genome)-1];
+$genome_id =~ s/.gff//;
+
 # set defaults if neccessary
 if ( ! defined $htseq_i ) { $htseq_i = "ID"; }
 
@@ -29,14 +34,20 @@ open my $IN, "<", $input_gff or die $!;
 my ($fh, $filename) = tempfile();
 
 my @vals = ();
+my $line_count = 0;
 foreach my $line ( <$IN> ) {
 	chomp $line;
+	
+	#skip empty lines
+	if ( $line =~ m/^$/ ) {
+		next;
+	}
 	
 	# skip comment lines
 	# this used to be in the fix strand block.  To preserve the comment line
 	# print it before going on to the next line.
 	if ( $line =~ m/^#/ ) {
-		print $fh (join("\t", @vals), "\n");
+		print $fh "$line\n";
 		next;
 	}
 	
@@ -54,7 +65,7 @@ foreach my $line ( <$IN> ) {
 	# get all the seperate fields in the line
 	@vals = split("\t", $line);
 	
-	#Fixes tag field
+	# Fixes tag field
     if ( $vals[8] =~ m/name / ) { 
       $vals[8] =~ s/;\s/;/g;
       $vals[8] =~ s/\s/=/g;
@@ -98,11 +109,13 @@ foreach my $line ( <$IN> ) {
 	}
 	
 	# check if the attribute values contain the htseq_i tag
-	if ( $vals[8] !~ m/$htseq_i/ ) {
-		$logger->warn("Line does not have a htseq_i value: $line");
+	if ( $vals[8] !~ m/$htseq_i=/ ) {
+		$vals[8] = "ID=" . $genome_id . "-" . $line_count . ";" . $vals[8];
 	}
-
+	
 	print $fh (join("\t", @vals), "\n");
+	
+	$line_count++;
 }
 close($IN);
 close($fh);

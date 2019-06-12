@@ -20,11 +20,13 @@ use IPC::Cmd qw(can_run run);
 use Data::Dumper;
 use List::Util qw(min);
 use FindBin qw($Bin);
+use DAFE::Count::OutputRestruct;
 
 # Subroutines #
 sub check_params;
 
 # Variables #
+<<<<<<< HEAD
 my ($config_file, $dafe_db_dir, $reads_dir, $out_dir, $ref_names_file,
     $sample_names_file, $perc_ids, $perc_ids_aref, $min_perc_id,
     $read_file_exten, $genome_file_exten, $gff_file_exten, $bam_file_prefix,
@@ -33,6 +35,15 @@ my ($config_file, $dafe_db_dir, $reads_dir, $out_dir, $ref_names_file,
     $lsf_threads, $lsf_mem, $lsf_queue, $lsf_out_file, $lsf_err_file,
     $lsf_job_name, $username,
     $queue_batch_count, $node_batch_count, $queue_max, $runtime_max, $jobs_file,
+=======
+my ($config_file, $dafe_db_dir, $combined_db_name, $reads_dir, $out_dir,
+    $restruct_out_dir, $ref_names_file, $sample_names_file, $perc_ids,
+    $perc_ids_aref, $min_perc_id, $read_file_exten, $genome_file_exten,
+    $gff_file_exten, $bam_file_prefix, $cov_stat_file_name, $htseq_file_prefix,
+    $htseq_i, $make_count_tbls_exe, $pairs_file, $skip_mapping, $skip_filtering,
+    $skip_htseq, $keep_bam_files, $lsf_threads, $lsf_mem, $lsf_queue,
+    $lsf_out_file, $lsf_err_file, $lsf_job_name, $queue_batch_count,
+    $node_batch_count, $queue_max, $runtime_max, $jobs_file,
     $help, $man);
 
 # NOTE: perc_ids_aref and min_perc_id are not a parameters passed in via the
@@ -50,8 +61,10 @@ my ($config_file, $dafe_db_dir, $reads_dir, $out_dir, $ref_names_file,
 my $options_okay = GetOptions (
     "config_file:s" => \$config_file,
     "dafe_db_dir:s" => \$dafe_db_dir,
+    "combined_db_name:s" => \$combined_db_name,
     "read_dir:s" => \$reads_dir,
     "out_dir:s" => \$out_dir,
+    "restruct_out_dir:s" => \$restruct_out_dir,
     "ref_names_file:s" => \$ref_names_file,
     "sample_names_file:s" => \$sample_names_file,
     "perc_ids:s" => \$perc_ids,
@@ -133,6 +146,11 @@ while ( stall($lsf_job_name) ) {
 # check the output for error.  correct if possible
 check_output_files();
 
+# reformat the output to look like the old output structure with a directory
+# for each genome and inside that directory and directory for each sample with
+# count files
+reformat_output_structure();
+
 # make the gene count tables for each genome
 make_gene_count_tbls();
 
@@ -148,6 +166,42 @@ $logger->info("COMPLETE!!");
 ########
 # Subs #
 ########
+sub reformat_output_structure {
+    # reformat the output to look like the old output structure with a directory
+    # for each genome and inside that directory and directory for each sample with
+    # count files
+    
+    # get the list of samples and references (ie genomes)
+    my ($ref_aref, $sample_aref);
+    if ( defined $pairs_file and -s $pairs_file ) {
+        ($ref_aref, $sample_aref) = get_pairs($pairs_file);
+    }
+    else {
+        # this is actually the standard way where everything in the
+        # ref_names_file and sample_names_file is ran
+        $ref_aref = get_names($ref_names_file);
+        $sample_aref = get_names($sample_names_file);
+    }
+    
+    # get a list of all the percent identies
+    # NOTE: $perc_ids_aref does not include the smallest value
+    #       (ie $min_perc_id) so I make a temporary aref and add back
+    #       $min_perc_id.
+    my $tmp_perc_ids_aref = [($min_perc_id), @{$perc_ids_aref}];
+    
+    # make the OutputRestruct object
+    my %args = ("out_dir" => $out_dir,
+                "new_out_dir" => $restruct_out_dir,
+                "ref_aref" => $ref_aref,
+                "sample_aref" => $sample_aref,
+                "perc_ids_aref" => $tmp_perc_ids_aref,
+                "htseq_file_prefix" => $htseq_file_prefix);
+    my $output_restruct = DAFE::Count::OutputRestruct->new(\%args);
+    $output_restruct->restructure();
+    
+    return 1;
+}
+
 sub make_gene_count_tbls {
     # this subroutine makes a table for each reference (ie genome) of the
     # counts for each genomic feature (ie gene) across each of the samples
@@ -166,7 +220,7 @@ sub make_gene_count_tbls {
     # build a loop for all the different percent identities
     foreach my $perc_id ( @{$tmp_perc_ids_aref} ) {
         my $command = "bash $make_count_tbls_exe ";
-        $command .= "-b $out_dir ";
+        $command .= "-b $restruct_out_dir ";
         $command .= "-i $ref_names_file ";
         $command .= "-s $sample_names_file ";
         $command .= "-c $htseq_file_prefix\_id" . $perc_id . ".txt ";
@@ -201,11 +255,11 @@ sub restart {
     $logger->debug("Restart jobs file: $jobs_file");
     
     # resubmit the master job (ie this script)
-    my $command = "bsub -q week -o lsf.out -e lsf.err -J restart ";
+    my $command = "sbatch -p general -o lsf.out -e lsf.err -J restart -t 168:00:00 --wrap=\"";
     $command .= "perl ~/scripts/comparitive_metaG/DAFE_count.pl ";
     $command .= "--config_file $config_file ";
     $command .= "--jobs_file $jobs_file ";
-    $command .= "--debug ";
+    $command .= "--debug \"";
     $logger->debug("Restart command: $command");
     
     `$command`;
@@ -226,6 +280,7 @@ sub save_config {
     print $CON "ref_names_file=$ref_names_file\n";
     print $CON "sample_names_file=$sample_names_file\n";
     print $CON "perc_ids=$perc_ids\n";
+    print $CON "user_name=$username\n";
     print $CON "read_file_exten=$read_file_exten\n" if is_defined($read_file_exten);
     print $CON "bam_file_prefix=$bam_file_prefix\n" if is_defined($bam_file_prefix);
     print $CON "cov_stat_file_name=$cov_stat_file_name\n" if is_defined($cov_stat_file_name);
@@ -297,7 +352,6 @@ sub check_output_files {
 
     
     # if the pairs file is provided use that to check the output
-    my $first_flag = 1;  # to help me not remove the lowest perc_id bam file
     if ( defined $pairs_file and -s $pairs_file ) {
         ($ref_aref, $sample_aref) = get_pairs($pairs_file);
         my $len = scalar @{$ref_aref};
@@ -317,12 +371,10 @@ sub check_output_files {
         $ref_aref = get_names($ref_names_file);
         $sample_aref = get_names($sample_names_file);
         
-        foreach my $ref ( @{$ref_aref} ) {
-            foreach my $sample ( @{$sample_aref} ) {
-                check_bam_file($ref, $sample, $min_perc_id);
-                foreach my $perc_id ( @{$tmp_perc_ids_aref} ) {
-                    check_htseq_file($ref, $sample, $perc_id, $htseq_i);
-                }
+        foreach my $sample ( @{$sample_aref} ) {
+            check_bam_file($sample, $min_perc_id);
+            foreach my $perc_id ( @{$tmp_perc_ids_aref} ) {
+                check_htseq_file($sample, $perc_id, $htseq_i);
             }
         }
     }
@@ -333,9 +385,9 @@ sub check_output_files {
 }
 
 sub check_bam_file {
-    my ($ref, $sample, $perc_id) = @_;
+    my ($sample, $perc_id) = @_;
     
-    my $file_name = "$out_dir/$ref/$sample/$bam_file_prefix\_id" . $perc_id . ".bam";
+    my $file_name = "$out_dir/$sample/$bam_file_prefix\_id" . $perc_id . ".bam";
     
     if ( is_false($keep_bam_files) ) {
         # if keep_bam_files is false the bam files are deleted before I get to
@@ -353,9 +405,9 @@ sub check_bam_file {
 }
 
 sub check_htseq_file {
-    my ($ref, $sample, $perc_id, $htseq_i) = @_;
+    my ($sample, $perc_id, $htseq_i) = @_;
     
-    my $file_name = "$out_dir/$ref/$sample/$htseq_file_prefix\_id" . $perc_id . ".txt";
+    my $file_name = "$out_dir/$sample/$htseq_file_prefix\_id" . $perc_id . ".txt";
     
     if ( ! -e $file_name ) {
         # if the file is missing it's likely the bam file is also missing
@@ -367,17 +419,17 @@ sub check_htseq_file {
         # not reads that mapped to this reference sequence
         $logger->warn("htseq-count file is empty: $file_name");
         $logger->warn("Trying to make an htseq-count file with all 0 values");
-        make_htseq_file($file_name, $ref, $htseq_i);
+        make_htseq_file($file_name, $htseq_i);
     }
     
     return 1;
 }
 
 sub make_htseq_file {
-    my ($file_name, $ref, $htseq_i) = @_;
+    my ($file_name, $htseq_i) = @_;
     
     # first make sure the gff file exists and is non-empty in the dafe_db
-    my $gff_file = "$dafe_db_dir/$ref/$ref$gff_file_exten";
+    my $gff_file = "$dafe_db_dir/../$combined_db_name" . ".gff";
     if ( ! -s $gff_file ) {
         $logger->warn("Cannot make htseq-count file because missing gff: $gff_file");
     }
@@ -507,7 +559,7 @@ sub bash_stall {
     
     $logger->debug("Running stall command: $command");
     
-    `$command`;
+    system($command);
     
     $logger->info("Stall finished.  All $job_name jobs are complete");
     
@@ -527,7 +579,7 @@ sub submit_batch {
         
         my $command = shift @{$jobs_aref};
         $logger->info("Submitting command: $command");
-        `$command`;
+        system($command);
     }
     
     return 1;
@@ -536,37 +588,24 @@ sub submit_batch {
 sub get_jobs {
     my @jobs = (); 
     my ($ref_aref, $sample_aref);
-    my $command = get_bsub_command() . "\"";
+    my $command = get_bsub_command() . "\'";
     my $batch_count = 1;
     
-    # if the pairs file is provided use that to create the job list
-    if ( defined $pairs_file and -s $pairs_file ) {
-        ($ref_aref, $sample_aref) = get_pairs($pairs_file);
-        my $len = scalar @{$ref_aref};
-
-        for ( my $i = 0; $i < $len; $i++ ) {
-            my $tmp_command = get_command($ref_aref->[$i], $sample_aref->[$i]);
+    $sample_aref = get_names($sample_names_file);
+    
+    foreach my $sample ( @{$sample_aref} ) {
+        my $tmp_command = get_command($sample);
+        
+        if ( $batch_count == $node_batch_count ) {
+            # end the command and add it to the jobs array
+            $command .= $tmp_command . "\';";
+            push @jobs, $command;
             
-            if ( $batch_count == $node_batch_count ) {
-                # end the command and add it to the jobs array
-                $command .= $tmp_command . "\";";
-                push @jobs, $command;
-                
-                # start a new command the bsub part and a quote
-                $command = get_bsub_command() . "\"";
-                $batch_count = 1;
-            }
-            else {
-                # keep adding to the current command
-                $command .= $tmp_command;
-                $batch_count++;
-            }
-            
-            $logger->debug("Building command for: " .
-                           $ref_aref->[$i] . ", " .
-                           $sample_aref->[$i]);
-            $logger->debug("Built command: $command");
+            # start a new command the bsub part and a quote
+            $command = get_bsub_command() . "\'";
+            $batch_count = 1;
         }
+<<<<<<< HEAD
     }
     else {
         # this is actually the standard way where everything in the
@@ -597,23 +636,32 @@ sub get_jobs {
                 $logger->debug("Building command for: $ref, $sample");
                 $logger->debug("Built command: $tmp_command");
             }
+=======
+        else {
+            # keep adding to the current command
+            $command .= $tmp_command;
+            $batch_count++;
+>>>>>>> e785d7f3e895a0a889b49723fc743bf296d80a25
         }
+        
+        $logger->debug("Building command for: $sample");
+        $logger->debug("Built command: $tmp_command");
     }
-    
+
     return(\@jobs);
 }
 
 sub get_command {
-    my ($ref, $sample) = @_;
+    my ($sample) = @_;
     
     my $command = "";
     
     if ( is_false($skip_mapping) ) {
-        $command .= get_mapping_command($ref, $sample, $min_perc_id);
+        $command .= get_mapping_command($sample, $min_perc_id);
     }
     
     if ( is_false($skip_filtering) ) {
-        $command .= get_filter_command($ref, $sample, $perc_ids_aref);
+        $command .= get_filter_command($sample, $perc_ids_aref);
     }
     
     if ( is_false($skip_htseq) ) {
@@ -622,7 +670,7 @@ sub get_command {
         #       $min_perc_id.
         my $tmp_perc_ids_aref = [($min_perc_id), @{$perc_ids_aref}];
         
-        $command .= get_htseq_command($ref, $sample, $tmp_perc_ids_aref, $htseq_i);
+        $command .= get_htseq_command($sample, $tmp_perc_ids_aref, $htseq_i);
     }
     
     if ( is_false($keep_bam_files) ) {
@@ -631,17 +679,17 @@ sub get_command {
         #       $min_perc_id.
         my $tmp_perc_ids_aref = [($min_perc_id), @{$perc_ids_aref}];
         
-        $command .= get_rm_bam_command($ref, $sample, $tmp_perc_ids_aref);
+        $command .= get_rm_bam_command($sample, $tmp_perc_ids_aref);
     }
     
     return($command);
 }
 
 sub get_rm_bam_command {
-    my ($ref, $sample, $perc_id_aref) = @_;
+    my ($sample, $perc_id_aref) = @_;
     
     my $command = " ";
-    my $bam_dir = "$out_dir/$ref/$sample/";
+    my $bam_dir = "$out_dir/$sample/";
     
     foreach my $perc_id ( @{$perc_id_aref} ) {
         my $bam_file = $bam_dir . $bam_file_prefix . "_id" . $perc_id . ".bam";
@@ -654,10 +702,10 @@ sub get_rm_bam_command {
 }
 
 sub get_filter_command {
-    my ($ref, $sample, $perc_id_aref) = @_;
+    my ($sample, $perc_id_aref) = @_;
     
     my $command = " ";
-    my $bam_dir = "$out_dir/$ref/$sample/";
+    my $bam_dir = "$out_dir/$sample/";
     
     foreach my $perc_id ( @{$perc_id_aref} ) {
     
@@ -670,7 +718,7 @@ sub get_filter_command {
         $out_bam_file = $bam_dir . $bam_file_prefix . "_id" . $perc_id . ".bam";
         
         # make the json file
-        $json_file = make_json_file($ref, $sample, $perc_id, $bam_dir);
+        $json_file = make_json_file($sample, $perc_id, $bam_dir);
         
         # generate the command
         $command .= "bamtools filter ";
@@ -683,7 +731,7 @@ sub get_filter_command {
 }
 
 sub make_json_file {
-    my ($ref, $sample, $perc_id, $bam_dir) = @_;
+    my ($sample, $perc_id, $bam_dir) = @_;
     
     my $json_file = $bam_dir . "id" . $perc_id . ".json";
     open my $JSON, ">", $json_file or
@@ -699,10 +747,10 @@ sub make_json_file {
 }
 
 sub get_htseq_command {
-    my ($ref, $sample, $perc_id_aref, $htseq_i) = @_;
+    my ($sample, $perc_id_aref, $htseq_i) = @_;
     
     my $command = " ";
-    my $bam_dir = "$out_dir/$ref/$sample/";
+    my $bam_dir = "$out_dir/$sample/";
     
     foreach my $perc_id ( @{$perc_id_aref} ) {
     
@@ -712,9 +760,7 @@ sub get_htseq_command {
         $bam_file = $bam_dir . $bam_file_prefix . "_id" . $perc_id . ".bam";
         
         # set the gff file
-        $gff_file = "$dafe_db_dir/";
-        $gff_file .= $ref . "/";
-        $gff_file .= $ref . ".gff";
+        $gff_file = "$dafe_db_dir/../$combined_db_name" . ".gff";
         
         # set the output file
         $out_file = "$bam_dir/$htseq_file_prefix" . "_id" . $perc_id . ".txt";
@@ -739,9 +785,9 @@ sub get_htseq_command {
 }
 
 sub get_mapping_command {
-    my ($ref, $sample, $perc_id) = @_;
+    my ($sample, $perc_id) = @_;
     
-    my ($reads_file, $reads_file_regx, $ref_file, $out_bam_dir,
+    my ($reads_file, $reads_file_regx, $db_path, $out_bam_dir,
         $out_bam_file, $command);
             
     # find the sample reads file
@@ -756,16 +802,13 @@ sub get_mapping_command {
     
     # generate the reference file name
     {
-        $ref_file = "$dafe_db_dir/";
-        $ref_file .= $ref . "/";
-        $ref_file .= $ref . $genome_file_exten;
+        $db_path = "$dafe_db_dir/../$combined_db_name/";
     }
     
     # generate the output bam file
     # this also creates the parent directories if they do not exist
     {
         $out_bam_dir = "$out_dir/";
-        $out_bam_dir .= $ref . "/";
         $out_bam_dir .= $sample . "/";
         
         if ( ! -d $out_bam_dir ) {
@@ -782,7 +825,7 @@ sub get_mapping_command {
         $logger->debug("Converting mapping percent ID to decimal: $perc_id");
         
         $command = "bbmap.sh ";
-        $command .= "ref=$ref_file ";
+        $command .= "path=$db_path ";
         $command .= "in=$reads_file ";
         $command .= "interleaved=false ";
         $command .= "ambiguous=random ";
@@ -792,7 +835,9 @@ sub get_mapping_command {
         $command .= "outputunmapped=f ";
         $command .= "sam=1.3 ";
         $command .= "nodisk=t ";
-        $command .= "threads=$t; ";
+        $command .= "threads=$t ";
+        $command .= "usemodulo=t ";
+        $command .= "-Xmx60g; ";
         
         if ( defined $cov_stat_file_name and length $cov_stat_file_name > 0 ) {
             # an option to make a coverage stats output file in addition
@@ -899,6 +944,17 @@ sub check_params {
                     -exitval => 2); 
     }
     
+    # check the combined_db_name
+    if ( ! defined $combined_db_name ) {
+        pod2usage(-message => "ERROR: required --combined_db_name not defined\n\n",
+					-exitval => 2);
+    }
+    if ( ! -d "$dafe_db_dir/../$combined_db_name" ) {
+        my $msg = "--combined_db_name is not a directory in $dafe_db_dir\n\n";
+        pod2usage(-message => "ERROR: $msg",
+                    -exitval => 2); 
+    }
+    
     # check the reads dir
     if ( ! defined $reads_dir ) {
         pod2usage(-message => "ERROR: required --reads_dir not defined\n\n",
@@ -917,6 +973,17 @@ sub check_params {
     if ( ! -d $out_dir ) {
         `mkdir $out_dir`;
         $logger->info("Creating out_dir ($out_dir)");
+    }
+    
+    # check restruct_out_dir
+    if ( ! defined $restruct_out_dir ) {
+        my $tmp = $out_dir;
+        $tmp =~ s/\/$//;
+        $restruct_out_dir = $tmp . "_restructured/";
+    }
+    if ( ! -d $restruct_out_dir ) {
+        `mkdir $restruct_out_dir`;
+        $logger->info("Creating restructured out dir ($restruct_out_dir)");
     }
     
     # check ref_names_file
@@ -1085,8 +1152,10 @@ sub check_params {
     $logger->info("Parameters");
     $logger->info("--config_file: $config_file") if (defined $config_file);
     $logger->info("--dafe_db_dir: $dafe_db_dir");
+    $logger->info("--combined_db_name: $combined_db_name");
     $logger->info("--reads_dir: $reads_dir");
     $logger->info("--out_dir: $out_dir");
+    $logger->info("--restruct_out_dir: $restruct_out_dir");
     $logger->info("--ref_names_file: $ref_names_file");
     $logger->info("--sample_names_file: $sample_names_file");
     $logger->info("--perc_ids: $perc_ids");
@@ -1130,8 +1199,10 @@ sub load_config {
     #       the lsf* parameters
     
     $dafe_db_dir = is_defined($params{''}{dafe_db_dir});
+    $combined_db_name = is_defined($params{''}{combined_db_name});
     $reads_dir = is_defined($params{''}{reads_dir});
     $out_dir = is_defined($params{''}{out_dir});
+    $restruct_out_dir = is_defined($params{''}{restruct_out_dir});
     $ref_names_file = is_defined($params{''}{ref_names_file});
     $sample_names_file = is_defined($params{''}{sample_names_file});
     $perc_ids = is_defined($params{''}{perc_ids});
@@ -1247,8 +1318,10 @@ This documentation refers to version 0.0.1
     DAFE_count.pl
         [--config_file DAFE_count.conf]
         --dafe_db_dir my_dafe_db/
+        --combined_db_name all_genomes
         --read_dir my_metagenome_samples/
         --out_dir my_out_dir/
+        [--restruct_out_dir restructured_out_dir/]
         --ref_names_file names.txt
         --sample_names_file samples.names.txt
         --perc_ids "60,70,80,90,95"
@@ -1285,8 +1358,10 @@ This documentation refers to version 0.0.1
 
     --config_file = Path to config file with any of the described parameters
     --dafe_db_dir = Path to DAFE database directory
+    --combined_db_name = Name of the directory with the bbmap reference db
     --reads_dir = Path to directory with metagenome sample reads
     --out_dir = Path to where output files will be stored
+    --restruct_out_dir = Path to where restructured output files are stored
     --ref_names_file = Path to file with reference names
     --sample_names_file = Path to file with sample names
     --perc_ids = Comma seperated list of percent IDs to using when filtering
@@ -1342,6 +1417,12 @@ reference directories are required to have a fasta genome file (*.fna), GFF file
 (*.gff), ......  The script ....... can be used to check the DAFE database for
 missing data or potential errors.
 
+=head2 --combined_db_name
+
+Name of the directory with the bbmap reference database.  This directory must
+be found in --dafe_db_dir.  It can be created by running
+DAFE_db_make_combined_db.pl.
+
 =head2 --reads_dir
 
 Path to directory with metagneome sample reads.  Within --reads_dir there should
@@ -1355,6 +1436,14 @@ like "sample_name*.fastq.gz" where sample_name is the same name as found in the
 
 Path to where output files will be stored.  If --out_dir does not exist as a
 directory it will be created.
+
+=head2 [--restruct_out_dir]
+
+Path to where restrucutred output files are stored.  When I changed the
+algorithm to use a combined database I restrucutre the output files to have the
+same format as when I use the multi-genome database scheme.  This way downstream
+scripts will continue to work.
+DEFAULT: --out_dir . "_restructured"
 
 =head2 --ref_names_file
 

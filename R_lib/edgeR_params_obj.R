@@ -94,12 +94,12 @@ get_test_groups = function(params) {
   
   # check that each value in the test_col_name column is included in the 
   # test vector
-  if ( ! (setequal(unique(test_groups), params$test)) ) {
+	if ( length(setdiff(params$test, unique(test_groups))) > 0 ) {
     message = paste("ERROR: test value params don't match values in test_col_name",
                     paste("test_col_name values:", 
-                          paste(test_groups, collapse=",")),
+                    paste(unique(test_groups), collapse=",")),
                     paste("test parameter values:",
-                          paste(params$test, collapse=",")),
+                    paste(params$test, collapse=",")),
                     sep="\n",
                     collapse="")
     

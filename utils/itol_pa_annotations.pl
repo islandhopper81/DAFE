@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-# Corrects the names in a genome fasta file.  Makes sure the name has no spaces
+# makes the ITOL annotations file for PA/NPA/Soil 
 
 use strict;
 use warnings;
@@ -12,19 +12,18 @@ use Readonly;
 use version; our $VERSION = qv('0.0.1');
 use Log::Log4perl qw(:easy);
 use Log::Log4perl::CommandLine qw(:all);
-use File::Temp qw(tempfile);
-use BioUtils::FastaIO;
+use UtilSY qw(:all);
+use Table;
 
 # Subroutines #
 sub check_params;
-sub _is_defined;
 
 # Variables #
-my ($genome_fasta, $overwrite, $help, $man);
+my ($ref_meta_file, $out_file, $help, $man);
 
 my $options_okay = GetOptions (
-    "genome_fasta:s" => \$genome_fasta,
-    "overwrite" => \$overwrite,
+    "ref_meta_file:s" => \$ref_meta_file,
+    "out_file:s" => \$out_file,
     "help|h" => \$help,                  # flag
     "man" => \$man,                     # flag (print full man page)
 );
@@ -41,30 +40,58 @@ check_params();
 ########
 # MAIN #
 ########
-# make an output file
-my ($fh, $filename) = tempfile();
-close($fh);
-my $fasta_out = BioUtils::FastaIO->new({stream_type => '>', file => $filename});
+# read in the reference annotation table
+my $ref_tbl = Table->new();
+$ref_tbl->load_from_file($ref_meta_file);
 
-# read the genome fasta file
-my $fasta_in = BioUtils::FastaIO->new({stream_type => '<', file => $genome_fasta});
+# open the output file
+open my $OUT, ">", $out_file or
+	$logger->logdie("Cannot open --out_file $out_file");
 
-while ( my $seq = $fasta_in->get_next_seq() ) {
-    # set the ID as the header.  Note that the ID is defined as everything up
-    # until the first space in the header string.
-    $seq->set_header($seq->get_id());
-    
-    # print
-    $fasta_out->write_seq($seq);
+# print the header info
+print $OUT "DATASET_COLORSTRIP\n";
+print $OUT "SEPARATOR TAB\n";
+print $OUT "DATASET_LABEL\tPA Label\n";
+print $OUT "COLOR\t#ff0000\n";
+
+
+# set the colors
+my $pa_col = "rgb(51, 204, 51)";
+my $npa_col = "rgb(255, 215, 0)";
+my $soil_col = "rgb(134, 89, 45)";
+
+# print the legend information
+print $OUT "LEGEND_TITLE\tPA Label\n";
+print $OUT "LEGEND_SHAPES\t1\t1\t1\n";
+print $OUT "LEGEND_COLORS\t$pa_col\t$soil_col\t$npa_col\n";
+print $OUT "LEGEND_LABELS\tPA\tSoil\tNPA\n";
+
+
+# print the data for each genome
+print $OUT "\nDATA\n";
+
+# each row is a genome
+foreach my $g ( @{$ref_tbl->get_row_names()} ) { 
+    print $OUT "$g\t";
+	
+	my $val = $ref_tbl->get_value_at($g, "Label");
+	
+	if ( $val eq "PA" ) {
+		print $OUT $pa_col . "\n";
+	}
+	elsif ( $val eq "NPA" ) {
+		print $OUT $npa_col . "\n";
+	}
+	elsif ( $val eq "Soil" ) {
+		print $OUT $soil_col . "\n";
+	}
+	else {
+		$logger->warn("Unrecognized label value at genome: $g");
+	}
 }
 
-# now move the tmp file to the original genome fasta
-# NOTE: this overwrite the original fasta file
-$logger->info("Moving tmp file ($filename) to overwite genome fasta ($genome_fasta)");
-`mv $filename $genome_fasta`;
 
-
-
+close($OUT);
 
 
 ########
@@ -72,45 +99,28 @@ $logger->info("Moving tmp file ($filename) to overwite genome fasta ($genome_fas
 ########
 sub check_params {
 	# check for required variables
-	if ( ! defined $genome_fasta) { 
-		pod2usage(-message => "ERROR: required --genome_fasta not defined\n\n",
+	if ( ! defined $ref_meta_file) { 
+		pod2usage(-message => "ERROR: required --ref_meta_file not defined\n\n",
 					-exitval => 2); 
+	}
+	if ( ! defined $out_file ) {
+		pod2usage(-message => "ERROR: required --out_file not defined\n\n",
+					-exitval => 2);
 	}
 
 	# make sure required files are non-empty
-	if ( ! -e $genome_fasta ) { 
-		pod2usage(-message => "ERROR: --genome_fasta $genome_fasta is an empty file\n\n",
+	if ( defined $ref_meta_file and ! -e $ref_meta_file ) { 
+		pod2usage(-message => "ERROR: --ref_meta_file $ref_meta_file is an empty file\n\n",
 					-exitval => 2);
 	}
-    
-    # check the overwrite parameter
-    if ( ! _is_defined($overwrite) ) {
-        pod2usage(-message => "ERROR: --overwrite flag must be given.  See docs!\n\n",
-					-exitval => 2);
-    }
 
-    $logger->info("--genome_fasta: $genome_fasta");
+	# make sure required directories exist
+	#if ( ! -d $dir ) { 
+	#	pod2usage(-message => "ERROR: --dir is not a directory\n\n",
+	#				-exitval => 2); 
+	#}
 	
 	return 1;
-}
-
-sub _is_defined {
-    my ($val, $default) = @_;
-    
-    if ( defined $val and $val eq "" ) {
-        # this is basically undefined
-        $val = undef;
-    }
-    
-    if ( defined $val ) {
-        return $val;
-    }
-    elsif ( defined $default ) {
-        return $default;
-    }
-    else {
-        return undef;
-    }
 }
 
 
@@ -120,8 +130,7 @@ __END__
 
 =head1 NAME
 
-DAFE_db_correct_genome_fasta.pl - Removes everything after the first space in
-the headers of a genome fasta file.
+[NAME].pl - [DESCRIPTION]
 
 
 =head1 VERSION
@@ -131,9 +140,9 @@ This documentation refers to version 0.0.1
 
 =head1 SYNOPSIS
 
-    DAFE_db_correct_genome_fasta.pl
-        --genome_fasta my_genome.fasta
-        --overwrite
+    [NAME].pl
+        -f my_file.txt
+        -v 10
         
         [--help]
         [--man]
@@ -142,8 +151,8 @@ This documentation refers to version 0.0.1
         [--quiet]
         [--logfile logfile.log]
 
-    --genome_fasta  Path to an input genome fasta file
-    --overwrite     Flag that warns user that the original genome fasta is overwritten!
+    --file | -f     Path to an input file
+    --var | -v      Path to an input variable
     --help | -h     Prints USAGE statement
     --man           Prints the man page
     --debug	        Prints Log4perl DEBUG+ messages
@@ -154,16 +163,13 @@ This documentation refers to version 0.0.1
 
 =head1 ARGUMENTS
     
-=head2 --genome_fasta
+=head2 --file | -f
 
-Path to an input genome fasta file
+Path to an input file
     
-=head2 --overwrite
+=head2 --var | -v
 
-Flag that warns user that the original genome fasta file is overwritten with the
-new fasta file with corrected names.  The orignal fasta cannot be recovered!  So
-only run this script if you can afford to lose the header inforamtion after the
-first space!
+Path to an input variable   
  
 =head2 [--help | -h]
     
@@ -196,8 +202,7 @@ STDERR.
 
 =head1 DESCRIPTION
 
-Note that the original genome fasta file is overwritten with this script!  It
-cannot be recovered.
+[FULL DESCRIPTION]
 
 =head1 CONFIGURATION AND ENVIRONMENT
     
@@ -214,9 +219,7 @@ Readonly
 version
 Log::Log4perl qw(:easy)
 Log::Log4perl::CommandLine qw(:all)
-File::Temp qw(tempfile)
-BioUtils::FastaIO
-
+UtilSY qw(:all)
 
 =head1 AUTHOR
 
