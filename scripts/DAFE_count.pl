@@ -33,7 +33,7 @@ my ($config_file, $dafe_db_dir, $combined_db_name, $reads_dir, $out_dir,
     $htseq_i, $make_count_tbls_exe, $pairs_file, $skip_mapping, $skip_filtering,
     $skip_htseq, $keep_bam_files, $lsf_threads, $lsf_mem, $lsf_queue,
     $lsf_out_file, $lsf_err_file, $lsf_job_name, $queue_batch_count,
-    $node_batch_count, $queue_max, $runtime_max, $jobs_file,
+    $node_batch_count, $queue_max, $runtime_max, $jobs_file, $username,
     $help, $man);
 
 # NOTE: perc_ids_aref and min_perc_id are not a parameters passed in via the
