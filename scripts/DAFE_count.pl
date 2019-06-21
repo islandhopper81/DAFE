@@ -595,7 +595,6 @@ sub get_jobs {
             $command = get_bsub_command() . "\'";
             $batch_count = 1;
         }
-<<<<<<< HEAD
     }
     else {
         # this is actually the standard way where everything in the
@@ -626,12 +625,10 @@ sub get_jobs {
                 $logger->debug("Building command for: $ref, $sample");
                 $logger->debug("Built command: $tmp_command");
             }
-=======
         else {
             # keep adding to the current command
             $command .= $tmp_command;
             $batch_count++;
->>>>>>> e785d7f3e895a0a889b49723fc743bf296d80a25
         }
         
         $logger->debug("Building command for: $sample");
