@@ -673,10 +673,10 @@ sub get_command {
 }
 
 sub get_rm_bam_command {
-    my ($sample, $perc_id_aref) = @_;
+    my ($samp, $perc_id_aref) = @_;
     
     my $command = " ";
-    my $bam_dir = "$out_dir/$sample/";
+    my $bam_dir = "$out_dir/$samp/";
     
     foreach my $perc_id ( @{$perc_id_aref} ) {
         my $bam_file = $bam_dir . $bam_file_prefix . "_id" . $perc_id . ".bam";
