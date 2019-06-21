@@ -576,66 +576,73 @@ sub submit_batch {
 }
 
 sub get_jobs {
-    my @jobs = (); 
-    my ($ref_aref, $sample_aref);
-    my $command = get_bsub_command() . "\'";
-    my $batch_count = 1;
-    
-    $sample_aref = get_names($sample_names_file);
-    
-    foreach my $sample ( @{$sample_aref} ) {
-        my $tmp_command = get_command($sample);
-        
-        if ( $batch_count == $node_batch_count ) {
-            # end the command and add it to the jobs array
-            $command .= $tmp_command . "\';";
-            push @jobs, $command;
-            
-            # start a new command the bsub part and a quote
-            $command = get_bsub_command() . "\'";
-            $batch_count = 1;
-        }
-    }
-    else {
-        # this is actually the standard way where everything in the
-        # ref_names_file and sample_names_file is ran
-        
-        $ref_aref = get_names($ref_names_file);
-        $sample_aref = get_names($sample_names_file);
-        
-        foreach my $ref ( @{$ref_aref} ) {
-            foreach my $sample ( @{$sample_aref} ) {
-                my $tmp_command = get_command($ref, $sample);
-                
-                if ( $batch_count == $node_batch_count ) {
-                    # end the command and add it to the jobs array
-                    $command .= $tmp_command . "\";";
-                    push @jobs, $command;
-                    
-                    # start a new command the bsub part and a quote
-                    $command = get_bsub_command();
-                    $batch_count = 1;
-                }
-                else {
-                    # keep adding to the current command
-                    $command .= $tmp_command;
-                    $batch_count++;
-                }
-                
-                $logger->debug("Building command for: $ref, $sample");
-                $logger->debug("Built command: $tmp_command");
-            }
-        else {
-            # keep adding to the current command
-            $command .= $tmp_command;
-            $batch_count++;
-        }
-        
-        $logger->debug("Building command for: $sample");
-        $logger->debug("Built command: $tmp_command");
-    }
+   my @jobs = ();
+   my ($ref_aref, $sample_aref);
+   my $command = get_bsub_command() . "\"";
+   my $batch_count = 1;
 
-    return(\@jobs);
+   # if the pairs file is provided use that to create the job list
+   if ( defined $pairs_file and -s $pairs_file ) {
+       ($ref_aref, $sample_aref) = get_pairs($pairs_file);
+       my $len = scalar @{$ref_aref};
+
+       for ( my $i = 0; $i < $len; $i++ ) {
+           my $tmp_command = get_command($ref_aref->[$i], $sample_aref->[$i]);
+
+           if ( $batch_count == $node_batch_count ) {
+               # end the command and add it to the jobs array
+               $command .= $tmp_command . "\";";
+               push @jobs, $command;
+
+               # start a new command the bsub part and a quote
+               $command = get_bsub_command() . "\"";
+               $batch_count = 1;
+           }
+           else {
+               # keep adding to the current command
+               $command .= $tmp_command;
+               $batch_count++;
+           }
+
+           $logger->debug("Building command for: " .
+                          $ref_aref->[$i] . ", " .
+                          $sample_aref->[$i]);
+           $logger->debug("Built command: $command");
+       }
+   }
+   else {
+       # this is actually the standard way where everything in the
+       # ref_names_file and sample_names_file is ran
+
+       $ref_aref = get_names($ref_names_file);
+       $sample_aref = get_names($sample_names_file);
+
+       foreach my $ref ( @{$ref_aref} ) {
+           foreach my $sample ( @{$sample_aref} ) {
+               my $tmp_command = get_command($ref, $sample);
+
+               if ( $batch_count == $node_batch_count ) {
+                   # end the command and add it to the jobs array
+                   $command .= $tmp_command . "\";";
+                   push @jobs, $command;
+
+                   # start a new command the bsub part and a quote
+                   $command = get_bsub_command() . "\"";
+                   $batch_count = 1;
+               }
+               else {
+                   # keep adding to the current command
+                   $command .= $tmp_command;
+                   $batch_count++;
+               }
+
+               $logger->debug("Building command for: $ref, $sample");
+               $logger->debug("Built command: $tmp_command");
+           }
+       }
+   }
+
+   return(\@jobs);
 }
 
 sub get_command {
