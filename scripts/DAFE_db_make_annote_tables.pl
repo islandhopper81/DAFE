@@ -308,7 +308,7 @@ sub print_tbl {
 sub remove_white_space {
     my ($val) = @_;
     
-    if ( $val =~ m/(\S*)\s*$/ ) {
+    if ( $val =~ m/^(\S*)\s*/ ) {
         return $1
     }
     
