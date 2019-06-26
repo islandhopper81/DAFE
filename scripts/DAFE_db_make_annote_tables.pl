@@ -309,7 +309,7 @@ sub remove_white_space {
     my ($val) = @_;
     
     if ( $val =~ m/^(\S*)\s*/ ) {
-        return $1
+        return $1;
     }
     
     return($val);
