@@ -616,7 +616,7 @@ sub get_jobs {
 
        $ref_aref = get_names($ref_names_file);
        $sample_aref = get_names($sample_names_file);
-
+	#when mapping to a single combined database, we only want to iterate over each sample
        #foreach my $ref ( @{$ref_aref} ) {
            foreach my $sample ( @{$sample_aref} ) {
                my $tmp_command = get_command($sample);
