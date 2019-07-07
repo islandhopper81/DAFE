@@ -245,7 +245,9 @@ sub add_to_tbl {
             $gene_id = $gene_id;
         }
 		#my $annote_id = shift @vals;
-		
+	if ($type eq "cog" and scalar @vals == 2){
+		pop @vals;
+	}
         $tbl_href->{$gene_id}{$type} = join("\t", @vals);
     }
     
@@ -308,7 +310,7 @@ sub print_tbl {
 sub remove_white_space {
     my ($val) = @_;
     
-    if ( $val =~ m/^(\S*)\s*/ ) {
+    if ( $val =~ m/(\S*)\s*$/ ) {
         return $1;
     }
     
