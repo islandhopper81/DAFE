@@ -237,6 +237,8 @@ sub add_to_tbl {
 		# must be a header line which will need to be skipped
 		# UPDATE: I'm only using two column files now so the line below is
 		# irrelevant
+		# UPDATE2: We are using 3 column cog files to have the category in the third column. 
+		# The header is already skipped based on the passed gene_id_col
 		#if ( $first and scalar @vals > 2 ) { $first = 0; next; }
 		
 		# get the gene_id value which MUST be in the first column
@@ -245,6 +247,7 @@ sub add_to_tbl {
             $gene_id = $gene_id;
         }
 		#my $annote_id = shift @vals;
+	#This removes the cog category if present. We only want to add the id to the table.
 	if ($type eq "cog" and scalar @vals == 2){
 		pop @vals;
 	}
