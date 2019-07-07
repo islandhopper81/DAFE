@@ -578,7 +578,7 @@ sub submit_batch {
 sub get_jobs {
    my @jobs = ();
    my ($ref_aref, $sample_aref);
-   my $command = get_bsub_command() . "\"";
+   my $command = get_bsub_command() . "\'";
    my $batch_count = 1;
 
    # if the pairs file is provided use that to create the job list
@@ -591,11 +591,11 @@ sub get_jobs {
 
            if ( $batch_count == $node_batch_count ) {
                # end the command and add it to the jobs array
-               $command .= $tmp_command . "\";";
+               $command .= $tmp_command . "\';";
                push @jobs, $command;
 
                # start a new command the bsub part and a quote
-               $command = get_bsub_command() . "\"";
+               $command = get_bsub_command() . "\'";
                $batch_count = 1;
            }
            else {
@@ -617,17 +617,17 @@ sub get_jobs {
        $ref_aref = get_names($ref_names_file);
        $sample_aref = get_names($sample_names_file);
 
-       foreach my $ref ( @{$ref_aref} ) {
+       #foreach my $ref ( @{$ref_aref} ) {
            foreach my $sample ( @{$sample_aref} ) {
-               my $tmp_command = get_command($ref, $sample);
+               my $tmp_command = get_command($sample);
 
                if ( $batch_count == $node_batch_count ) {
                    # end the command and add it to the jobs array
-                   $command .= $tmp_command . "\";";
+                   $command .= $tmp_command . "\';";
                    push @jobs, $command;
 
                    # start a new command the bsub part and a quote
-                   $command = get_bsub_command() . "\"";
+                   $command = get_bsub_command() . "\'";
                    $batch_count = 1;
                }
                else {
@@ -636,10 +636,10 @@ sub get_jobs {
                    $batch_count++;
                }
 
-               $logger->debug("Building command for: $ref, $sample");
+               $logger->debug("Building command for: $sample");
                $logger->debug("Built command: $tmp_command");
            }
-       }
+       #}
    }
 
    return(\@jobs);
@@ -757,7 +757,7 @@ sub get_htseq_command {
         $gff_file = "$dafe_db_dir/../$combined_db_name" . ".gff";
         
         # set the output file
-        $out_file = "$bam_dir/$htseq_file_prefix" . "_id" . $perc_id . ".txt";
+        $out_file = "$bam_dir" . "$htseq_file_prefix" . "_id" . $perc_id . ".txt";
         
         # generate the command
         {
@@ -821,7 +821,7 @@ sub get_mapping_command {
         $command = "bbmap.sh ";
         $command .= "path=$db_path ";
         $command .= "in=$reads_file ";
-        $command .= "interleaved=false ";
+        $command .= "interleaved=true ";
         $command .= "ambiguous=random ";
         $command .= "minid=$perc_id ";
         $command .= "idtag=t ";
@@ -852,13 +852,13 @@ sub get_bsub_command {
     my $bsub = "sbatch ";
     $bsub .= "--mem=$lsf_mem ";
     $bsub .= "-p $lsf_queue ";
-    $bsub .= "-t 168:00:00";
+    $bsub .= "-t 168:00:00 ";
     $bsub .= "-n $lsf_threads ";
     $bsub .= "-N 1 ";
     $bsub .= "-o $out_dir/$lsf_out_file ";
     $bsub .= "-e $out_dir/$lsf_err_file ";
     $bsub .= "-J $lsf_job_name ";
-    $bsub .= "--wrap=\"";
+    $bsub .= "--wrap=";
     
     return($bsub);
 }
